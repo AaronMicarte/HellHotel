@@ -53,8 +53,25 @@ class PaymentAPI
             }
         }
 
-        $sql = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes)
-                VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :payment_date, :notes)";
+        // Validate notes and reference number for electronic payments (GCash=1, PayMaya=2)
+        $sub_method_id = intval($json['sub_method_id']);
+        if ($sub_method_id == 1 || $sub_method_id == 2) { // GCash or PayMaya
+            if (!isset($json['notes']) || trim($json['notes']) === "") {
+                $error = "Notes are required for electronic payments";
+                file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " ERROR: $error\n", FILE_APPEND);
+                echo json_encode(['success' => false, 'error' => $error]);
+                return;
+            }
+            if (!isset($json['reference_number']) || trim($json['reference_number']) === "") {
+                $error = "Reference number is required for electronic payments";
+                file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " ERROR: $error\n", FILE_APPEND);
+                echo json_encode(['success' => false, 'error' => $error]);
+                return;
+            }
+        }
+
+        $sql = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number)
+                VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :payment_date, :notes, :reference_number)";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":user_id", $json['user_id']);
         $stmt->bindParam(":billing_id", $json['billing_id']);
@@ -63,6 +80,8 @@ class PaymentAPI
         $stmt->bindParam(":amount_paid", $json['amount_paid']);
         $stmt->bindParam(":payment_date", $json['payment_date']);
         $stmt->bindParam(":notes", $json['notes']);
+        $reference_number = isset($json['reference_number']) ? $json['reference_number'] : null;
+        $stmt->bindParam(":reference_number", $reference_number);
 
         try {
             $stmt->execute();
@@ -121,7 +140,8 @@ class PaymentAPI
                     sub_method_id = :sub_method_id,
                     amount_paid = :amount_paid,
                     payment_date = :payment_date,
-                    notes = :notes
+                    notes = :notes,
+                    reference_number = :reference_number
                 WHERE payment_id = :payment_id";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":user_id", $json['user_id']);
@@ -131,6 +151,7 @@ class PaymentAPI
         $stmt->bindParam(":amount_paid", $json['amount_paid']);
         $stmt->bindParam(":payment_date", $json['payment_date']);
         $stmt->bindParam(":notes", $json['notes']);
+        $stmt->bindParam(":reference_number", $json['reference_number'] ?? null);
         $stmt->bindParam(":payment_id", $json['payment_id']);
         $stmt->execute();
 

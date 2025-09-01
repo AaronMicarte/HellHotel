@@ -13,9 +13,20 @@ async function loadPaymentMethodsDropdown() {
             select.innerHTML = '<option value="">No payment methods</option>';
             return;
         }
-        select.innerHTML = '';
-        for (const m of methods) {
+        // Filter to only show Cash, GCash, and PayMaya
+        const allowedMethods = methods.filter(m =>
+            m.name && (m.name.toLowerCase() === 'cash' ||
+                m.name.toLowerCase() === 'gcash' ||
+                m.name.toLowerCase() === 'paymaya')
+        );
+
+        select.innerHTML = '<option value="">-- Select Payment Method --</option>';
+        for (const m of allowedMethods) {
             select.innerHTML += `<option value="${m.sub_method_id}">${m.name}</option>`;
+        }
+
+        if (allowedMethods.length === 0) {
+            select.innerHTML = '<option value="">No valid payment methods available</option>';
         }
     } catch (err) {
         select.innerHTML = '<option value="">Failed to load</option>';
@@ -26,6 +37,36 @@ async function loadPaymentMethodsDropdown() {
 const reservationModal = document.getElementById("reservationModal");
 if (reservationModal) {
     reservationModal.addEventListener("show.bs.modal", loadPaymentMethodsDropdown);
+}
+
+// Add payment method change handler for reference number field
+const paymentMethodSelect = document.getElementById("paymentMethodSelect");
+if (paymentMethodSelect) {
+    paymentMethodSelect.addEventListener("change", function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const selectedText = selectedOption ? selectedOption.text.toLowerCase() : '';
+
+        // Show/hide reference number field based on payment method
+        const referenceContainer = document.getElementById("referenceNumberContainer");
+        const referenceInput = document.getElementById("referenceNumber");
+
+        if (selectedText === 'gcash' || selectedText === 'paymaya') {
+            if (referenceContainer) {
+                referenceContainer.style.display = 'block';
+                if (referenceInput) {
+                    referenceInput.required = true;
+                }
+            }
+        } else {
+            if (referenceContainer) {
+                referenceContainer.style.display = 'none';
+                if (referenceInput) {
+                    referenceInput.required = false;
+                    referenceInput.value = '';
+                }
+            }
+        }
+    });
 }
 // === GLOBALS & CONSTANTS ===
 // ==========================
@@ -1044,6 +1085,19 @@ function clearReservationForm() {
     setFieldValue("roomTypeSelect", "");
     updateAvailableRooms();
     loadIDTypes();
+
+    // Reset payment method and reference number
+    setFieldValue("paymentMethodSelect", "");
+    setFieldValue("referenceNumber", "");
+    const referenceContainer = document.getElementById("referenceNumberContainer");
+    if (referenceContainer) {
+        referenceContainer.style.display = 'none';
+        const referenceInput = document.getElementById("referenceNumber");
+        if (referenceInput) {
+            referenceInput.required = false;
+        }
+    }
+
     // Ensure price/partial fields are reset
     if (typeof updateRoomPriceAndPartial === 'function') updateRoomPriceAndPartial();
 }
@@ -1400,6 +1454,7 @@ async function saveReservation() {
     }
     // Get selected payment method for partial payment
     const subMethodId = getVal("paymentMethodSelect");
+    const referenceNumber = getVal("referenceNumber");
     let guestId = document.getElementById("guestSelectId")?.value || getVal("guestSelect");
     const reservationId = getVal("reservationId");
     // Guest fields
@@ -1419,6 +1474,24 @@ async function saveReservation() {
     // Validation (for guest and stay info only)
     if (!firstName || !lastName || !dateOfBirth || !email || !phone || !idType || !idNumber || !checkInDate || !statusId) {
         showError("Please fill in all required fields.");
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+    }
+
+    // Validate payment method selection
+    if (!subMethodId) {
+        showError("Please select a payment method.");
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+    }
+
+    // Validate reference number for GCash and PayMaya
+    const paymentMethodSelect = document.getElementById("paymentMethodSelect");
+    const selectedOption = paymentMethodSelect ? paymentMethodSelect.options[paymentMethodSelect.selectedIndex] : null;
+    const selectedMethodName = selectedOption ? selectedOption.text.toLowerCase() : '';
+
+    if ((selectedMethodName === 'gcash' || selectedMethodName === 'paymaya') && !referenceNumber.trim()) {
+        showError("Reference number is required for " + selectedOption.text + " payments.");
         if (saveBtn) saveBtn.disabled = false;
         return;
     }
@@ -1526,6 +1599,7 @@ async function saveReservation() {
         check_out_date: checkOutDate,
         reservation_status_id: statusId,
         sub_method_id: subMethodId,
+        reference_number: referenceNumber.trim() || null,
         rooms: roomsPayload
     };
     let operation = "insertReservation";

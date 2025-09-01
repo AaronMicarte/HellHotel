@@ -230,7 +230,7 @@ class Reservation
                     if (isset($json['sub_method_id']) && is_numeric($json['sub_method_id'])) {
                         $sub_method_id = intval($json['sub_method_id']);
                     }
-                    $sqlPay = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, is_deleted) VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, NOW(), :notes, 0)";
+                    $sqlPay = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, is_deleted) VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, NOW(), :notes, :reference_number, 0)";
                     $stmtPay = $db->prepare($sqlPay);
                     $stmtPay->bindParam(":user_id", $userId);
                     $stmtPay->bindParam(":billing_id", $billingId);
@@ -239,6 +239,8 @@ class Reservation
                     $stmtPay->bindParam(":amount_paid", $partial_amount);
                     $note = "Partial/Downpayment (auto)";
                     $stmtPay->bindParam(":notes", $note);
+                    $reference_number = isset($json['reference_number']) ? $json['reference_number'] : null;
+                    $stmtPay->bindParam(":reference_number", $reference_number);
                     $stmtPay->execute();
                 }
             }
@@ -255,7 +257,7 @@ class Reservation
         $db = $database->getConnection();
         $json = is_array($json) ? $json : json_decode($json, true);
 
-        // --- Update Payment sub_method_id for this reservation's partial payment if present ---
+        // --- Update Payment sub_method_id and reference_number for this reservation's partial payment if present ---
         if (isset($json['sub_method_id']) && is_numeric($json['sub_method_id'])) {
             // Find the latest partial payment for this reservation
             $sqlPay = "SELECT payment_id FROM Payment WHERE reservation_id = :reservation_id AND is_deleted = 0 ORDER BY payment_id DESC LIMIT 1";
@@ -264,10 +266,22 @@ class Reservation
             $stmtPay->execute();
             $paymentId = $stmtPay->fetchColumn();
             if ($paymentId) {
-                $sqlUpdatePay = "UPDATE Payment SET sub_method_id = :sub_method_id WHERE payment_id = :payment_id";
+                $updateFields = ["sub_method_id = :sub_method_id"];
+                $updateParams = [":sub_method_id" => $json['sub_method_id']];
+
+                // Include reference_number if provided
+                if (isset($json['reference_number'])) {
+                    $updateFields[] = "reference_number = :reference_number";
+                    $updateParams[":reference_number"] = $json['reference_number'];
+                }
+
+                $sqlUpdatePay = "UPDATE Payment SET " . implode(", ", $updateFields) . " WHERE payment_id = :payment_id";
+                $updateParams[":payment_id"] = $paymentId;
+
                 $stmtUpdatePay = $db->prepare($sqlUpdatePay);
-                $stmtUpdatePay->bindParam(":sub_method_id", $json['sub_method_id']);
-                $stmtUpdatePay->bindParam(":payment_id", $paymentId);
+                foreach ($updateParams as $param => $value) {
+                    $stmtUpdatePay->bindValue($param, $value);
+                }
                 $stmtUpdatePay->execute();
             }
         }

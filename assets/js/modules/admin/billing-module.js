@@ -165,11 +165,13 @@ export const showBillingDetailsModal = async (billingId) => {
         } else {
             paymentHistoryBody.innerHTML = "";
             (billing.payments || []).forEach(p => {
+                const referenceDisplay = p.reference_number ?
+                    `<br><small class="text-muted"><i class="fas fa-receipt me-1"></i>Ref: ${p.reference_number}</small>` : '';
                 paymentHistoryBody.innerHTML += `
                     <tr>
                         <td>${formatDate(p.payment_date)}</td>
                         <td>₱${p.amount_paid}</td>
-                        <td>${p.method_name || '-'}</td>
+                        <td>${p.method_name || '-'}${referenceDisplay}</td>
                         <td>${p.notes || ''}</td>
                     </tr>
                 `;
@@ -179,7 +181,14 @@ export const showBillingDetailsModal = async (billingId) => {
         modal.show();
     } catch (error) {
         console.error("[BillingModule] Failed to load billing details", error);
-        alert("Failed to load billing details");
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: 'Failed to load billing details',
+            showConfirmButton: false,
+            timer: 2000
+        });
     }
 };
 
@@ -320,7 +329,15 @@ const populatePaymentMethodSelect = async () => {
             { params: { operation: "getAllSubMethods" } }
         );
         const subMethods = Array.isArray(response.data) ? response.data : [];
-        subMethods.forEach(sm => {
+
+        // Filter to only show Cash, GCash, and PayMaya
+        const allowedMethods = subMethods.filter(m =>
+            m.name && (m.name.toLowerCase() === 'cash' ||
+                m.name.toLowerCase() === 'gcash' ||
+                m.name.toLowerCase() === 'paymaya')
+        );
+
+        allowedMethods.forEach(sm => {
             const opt = document.createElement("option");
             opt.value = sm.name; // keep using name for compatibility with getSubMethodIdByName
             opt.textContent = sm.payment_category
@@ -328,6 +345,10 @@ const populatePaymentMethodSelect = async () => {
                 : sm.name;
             select.appendChild(opt);
         });
+
+        if (allowedMethods.length === 0) {
+            select.innerHTML = '<option value="">No valid payment methods available</option>';
+        }
     } catch (err) {
         console.error("[BillingModule] Failed to load payment methods:", err);
         select.innerHTML = `<option value="">Error loading methods</option>`;
@@ -342,8 +363,63 @@ export const showPaymentModal = async (billingId = null, reservationId = null) =
         document.getElementById("paymentForm").reset();
         document.getElementById("billingId").value = billingId || "";
 
-        // Dynamically load payment methods
+        // Reset reference number field
+        const referenceContainer = document.getElementById("referenceNumberContainer");
+        const referenceInput = document.getElementById("paymentReferenceNumber");
+
+        console.log("[BillingModule] Reference elements found:", {
+            container: !!referenceContainer,
+            input: !!referenceInput
+        }); // Debug log
+
+        if (referenceContainer) {
+            referenceContainer.style.display = 'none';
+            if (referenceInput) {
+                referenceInput.required = false;
+                referenceInput.value = '';
+            }
+        }
+
+        // Dynamically load payment methods first
         await populatePaymentMethodSelect();
+
+        // Then add payment method change handler for reference number
+        const paymentMethodSelect = document.getElementById("paymentMethod");
+        if (paymentMethodSelect) {
+            // Remove any existing event listeners
+            const newSelect = paymentMethodSelect.cloneNode(true);
+            paymentMethodSelect.parentNode.replaceChild(newSelect, paymentMethodSelect);
+
+            newSelect.addEventListener("change", function () {
+                const selectedOption = this.options[this.selectedIndex];
+                const selectedText = selectedOption ? selectedOption.text.toLowerCase() : '';
+
+                console.log("[BillingModule] Payment method selected:", selectedText); // Debug log
+
+                const refContainer = document.getElementById("referenceNumberContainer");
+                const refInput = document.getElementById("paymentReferenceNumber");
+
+                // Check for GCash or PayMaya (case insensitive and includes category text)
+                if (selectedText.includes('gcash') || selectedText.includes('paymaya')) {
+                    console.log("[BillingModule] Showing reference number field"); // Debug log
+                    if (refContainer) {
+                        refContainer.style.display = 'block';
+                        if (refInput) {
+                            refInput.required = true;
+                        }
+                    }
+                } else {
+                    console.log("[BillingModule] Hiding reference number field"); // Debug log
+                    if (refContainer) {
+                        refContainer.style.display = 'none';
+                        if (refInput) {
+                            refInput.required = false;
+                            refInput.value = '';
+                        }
+                    }
+                }
+            });
+        }
 
         let resolvedReservationId = reservationId;
         // If billingId is given but reservationId is not, fetch the billing to get reservation_id
@@ -384,10 +460,11 @@ export const recordPayment = async () => {
     const paymentAmount = document.getElementById("paymentAmount").value;
     const paymentMethod = document.getElementById("paymentMethod").value;
     const paymentNotes = document.getElementById("paymentNotes").value;
+    const referenceNumber = document.getElementById("paymentReferenceNumber").value;
 
     // DEBUG: Log all values
     console.debug("[BillingModule] recordPayment values:", {
-        billingId, reservationId, paymentAmount, paymentMethod, paymentNotes
+        billingId, reservationId, paymentAmount, paymentMethod, paymentNotes, referenceNumber
     });
 
     if (!reservationId || !paymentAmount || !paymentMethod) {
@@ -398,6 +475,36 @@ export const recordPayment = async () => {
             title: 'Please fill in all required fields',
             showConfirmButton: false,
             timer: 1800
+        });
+        return;
+    }
+
+    // Validate reference number for GCash and PayMaya
+    const paymentMethodSelect = document.getElementById("paymentMethod");
+    const selectedOption = paymentMethodSelect ? paymentMethodSelect.options[paymentMethodSelect.selectedIndex] : null;
+    const selectedMethodName = selectedOption ? selectedOption.text.toLowerCase() : '';
+
+    if ((selectedMethodName === 'gcash' || selectedMethodName === 'paymaya') && !referenceNumber.trim()) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'warning',
+            title: 'Reference number is required for ' + selectedOption.text + ' payments',
+            showConfirmButton: false,
+            timer: 2500
+        });
+        return;
+    }
+
+    // Validate notes for electronic payments
+    if ((selectedMethodName === 'gcash' || selectedMethodName === 'paymaya') && !paymentNotes.trim()) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'warning',
+            title: 'Notes are required for ' + selectedOption.text + ' payments',
+            showConfirmButton: false,
+            timer: 2500
         });
         return;
     }
@@ -504,7 +611,8 @@ export const recordPayment = async () => {
         sub_method_id,
         amount_paid: paymentAmount,
         payment_date,
-        notes: paymentNotes
+        notes: paymentNotes,
+        reference_number: referenceNumber.trim() || null
     };
 
     // DEBUG: Log payload
@@ -531,9 +639,16 @@ export const recordPayment = async () => {
                 showConfirmButton: false,
                 timer: 1800
             });
-            console.error("[BillingModule] Payment API error:", response.data);
+            console.error("[BillingModule] Payment error:", response.data);
             if (response.data && typeof response.data === "object" && response.data.error) {
-                alert("Payment API error: " + response.data.error);
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Payment error: ' + response.data.error,
+                    showConfirmButton: false,
+                    timer: 3000
+                });
             }
             return false;
         }
@@ -572,7 +687,14 @@ export const recordPayment = async () => {
         console.error("[BillingModule] Payment API exception:", err);
         if (err.response) {
             console.error("[BillingModule] Payment API error response:", err.response.data);
-            alert("Payment API error: " + (err.response.data?.error || JSON.stringify(err.response.data)));
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: 'Payment API error: ' + (err.response.data?.error || 'Server error'),
+                showConfirmButton: false,
+                timer: 3000
+            });
         }
         return false;
     }

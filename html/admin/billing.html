@@ -301,6 +301,18 @@
                                     <!-- Options loaded dynamically by JS -->
                                 </select>
                             </div>
+                            <div class="col-md-6">
+                                <!-- Empty column for spacing when reference number is hidden -->
+                            </div>
+                            <!-- Reference Number Field (for GCash/PayMaya) - Full width row -->
+                            <div class="col-12" id="referenceNumberContainer" style="display: none;">
+                                <label for="paymentReferenceNumber" class="form-label">
+                                    <i class="fas fa-receipt me-1 text-success"></i>Reference Number
+                                </label>
+                                <input type="text" class="form-control" id="paymentReferenceNumber"
+                                    placeholder="Enter payment reference number">
+                                <div class="form-text">Required for GCash and PayMaya payments</div>
+                            </div>
                             <div class="col-12">
                                 <label for="paymentNotes" class="form-label">
                                     <i class="fas fa-sticky-note me-1 text-primary"></i>Notes

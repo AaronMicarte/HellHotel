@@ -1,0 +1,24 @@
+2025-09-01T19:23:39+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"99.5","payment_date":"2025-09-02 01:23:39","notes":"","reference_number":null}
+2025-09-01T19:23:43+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"99.5","payment_date":"2025-09-02 01:23:43","notes":"","reference_number":"123"}
+2025-09-01T19:23:45+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"99.5","payment_date":"2025-09-02 01:23:45","notes":"123","reference_number":"123"}
+2025-09-01T19:27:03+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"99.5","payment_date":"2025-09-02 01:27:03","notes":"","reference_number":null}
+2025-09-01T19:27:03+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:27:16+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"1","payment_date":"2025-09-02 01:27:16","notes":"","reference_number":null}
+2025-09-01T19:27:16+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:29:21+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"12","payment_date":"2025-09-02 01:29:21","notes":"","reference_number":null}
+2025-09-01T19:29:21+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:29:52+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"12","payment_date":"2025-09-02 01:29:51","notes":"","reference_number":null}
+2025-09-01T19:29:52+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:29:55+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"12","payment_date":"2025-09-02 01:29:55","notes":"","reference_number":null}
+2025-09-01T19:29:55+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:30:20+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"12","payment_date":"2025-09-02 01:30:20","notes":"","reference_number":null}
+2025-09-01T19:30:20+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:30:48+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"1","payment_date":"2025-09-02 01:30:48","notes":"","reference_number":null}
+2025-09-01T19:30:48+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:32:06+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"2","payment_date":"2025-09-02 01:32:06","notes":"","reference_number":null}
+2025-09-01T19:32:06+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:32:10+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"2","payment_date":"2025-09-02 01:32:10","notes":"","reference_number":"123123"}
+2025-09-01T19:32:10+02:00 ERROR: Notes are required for electronic payments
+2025-09-01T19:32:23+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"2","payment_date":"2025-09-02 01:32:23","notes":"Wala lang","reference_number":null}
+2025-09-01T19:32:23+02:00 ERROR: Reference number is required for electronic payments
+2025-09-01T19:32:27+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"2","payment_date":"2025-09-02 01:32:27","notes":"Wala lang","reference_number":"123123123"}
