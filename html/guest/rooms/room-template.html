@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Details - HellHotel</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/room-details.css">
+</head>
+
+<body>
+    <!-- Header will be injected here -->
+    <div id="header-container"></div>
+
+    <!-- Loading State -->
+    <div id="roomLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Loading room details...</p>
+    </div>
+
+    <!-- Room Content -->
+    <div id="roomContent" class="d-none">
+        <div class="container mt-5 pt-3">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="../index.html">Home</a></li>
+                    <li class="breadcrumb-item"><a href="../index.html#rooms">Rooms</a></li>
+                    <li class="breadcrumb-item active" id="breadcrumbRoom">Room Details</li>
+                </ol>
+            </nav>
+
+            <div class="row">
+                <!-- Room Details -->
+                <div class="col-lg-8">
+                    <div class="room-details-card">
+                        <div class="room-image-container">
+                            <img id="roomImage" src="../../../assets/images/placeholder-room.jpg" alt="Room"
+                                class="img-fluid rounded">
+                        </div>
+
+                        <div class="room-info mt-4">
+                            <h1 id="roomTitle">Room Title</h1>
+                            <div class="room-meta mb-3">
+                                <span class="badge bg-primary me-2" id="roomCapacity">0 guests</span>
+                                <span class="badge bg-info me-2" id="roomSize">0 sqm</span>
+                                <span class="text-muted">24-hour stay</span>
+                            </div>
+
+                            <p id="roomDescription" class="text-muted">Room description...</p>
+
+                            <div class="room-features mt-4">
+                                <h5>Room Features</h5>
+                                <div class="row" id="roomFeatures">
+                                    <!-- Features will be populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Booking Sidebar -->
+                <div class="col-lg-4">
+                    <div class="booking-sidebar sticky-top" style="top: 100px;">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0" id="bookingRoomTitle">Book This Room</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="price-display text-center mb-3">
+                                    <h3 class="text-primary" id="displayRoomPrice">₱0</h3>
+                                    <small class="text-muted">per 24-hour stay</small>
+                                </div>
+
+                                <div class="payment-info mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Down Payment (50%):</span>
+                                        <strong id="displayDownPayment">₱0</strong>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid">
+                                    <button class="btn btn-primary btn-lg" onclick="proceedToBooking()">
+                                        <i class="fas fa-calendar-check me-2"></i>Book Now
+                                    </button>
+                                </div>
+
+                                <div class="booking-info mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        24-hour stay policy applies
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="roomError" class="d-none text-center py-5">
+        <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+        <h4>Room Not Found</h4>
+        <p class="text-muted">The requested room could not be found.</p>
+        <a href="../index.html" class="btn btn-primary">Return to Home</a>
+    </div>
+
+    <!-- Footer will be injected here -->
+    <div id="footer-container"></div>
+
+    <!-- Scripts -->
+    <script src="../../../assets/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/sweetalert2.min.js"></script>
+    <script src="../../../assets/js/main.js"></script>
+    <script src="../../../assets/js/components.js"></script>
+
+    <!-- Room Data -->
+    <script type="module" src="../../../assets/js/modules/room-data.js"></script>
+    <script type="module" src="../../../assets/js/modules/room-page.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Load header and footer
+            if (window.Components) {
+                window.Components.loadHeader('header-container', '../');
+                window.Components.loadFooter('footer-container', '../');
+            }
+
+            // Get room type from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomType = urlParams.get('type') || 'regular';
+
+            // Initialize room page
+            setTimeout(() => {
+                if (window.RoomPageManager) {
+                    window.RoomPageManager.initialize(roomType);
+                } else {
+                    console.error('RoomPageManager not loaded');
+                }
+            }, 500);
+        });
+
+        function proceedToBooking() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomType = urlParams.get('type') || 'regular';
+
+            // Store selected room type
+            sessionStorage.setItem('selectedRoomType', roomType);
+
+            // Redirect to booking form
+            window.location.href = '../pages/booking-form.html';
+        }
+    </script>
+</body>
+
+</html>

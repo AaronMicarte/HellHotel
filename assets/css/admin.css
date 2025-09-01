@@ -1,0 +1,231 @@
+.sidebar-menu .sidebar-dropdown>a:hover,
+.sidebar-menu .sidebar-dropdown.open>a {
+    background: #f8f9fa;
+    color: var(--primary-color);
+    transition: var(--transition);
+}
+
+.sidebar-menu .sidebar-submenu li a:hover {
+    background: #f8f9fa;
+    color: var(--primary-color);
+    transition: var(--transition);
+}
+
+/* Admin Shared Styles - Common admin interface elements */
+:root {
+    /* Use variables from style.css since we're importing it */
+    --admin-sidebar-width: 250px;
+}
+
+/* Common Admin Elements */
+.admin-wrapper {
+    display: flex;
+    min-height: 100vh;
+    background: var(--background-gradient);
+    padding: 0;
+}
+
+body.admin-page {
+    padding-top: 0;
+    /* Override the padding-top from style.css */
+}
+
+/* Admin UI Components */
+.admin-card {
+    background: var(--card-gradient);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-medium);
+    border: 1px solid rgba(255, 51, 102, 0.1);
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+}
+
+.admin-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg,
+            rgba(255, 51, 102, 0.02) 0%,
+            transparent 50%,
+            rgba(255, 107, 139, 0.02) 100%);
+    z-index: 1;
+    opacity: 0;
+}
+
+.admin-card:hover::before {
+    opacity: 1;
+}
+
+.admin-card:hover {
+    box-shadow: var(--shadow-heavy);
+}
+
+/* Admin Buttons */
+.admin-btn {
+    font-family: var(--font-secondary);
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.admin-btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    box-shadow: var(--shadow-primary);
+}
+
+.admin-btn-primary:hover {
+    box-shadow: 0 8px 25px rgba(255, 51, 102, 0.4);
+}
+
+/* Admin Forms */
+.admin-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.admin-form-group label {
+    font-family: var(--font-secondary);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--dark-color);
+}
+
+.admin-form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #E9ECEF;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+.admin-form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(255, 51, 102, 0.15);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+/* Loading State */
+.admin-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+}
+
+.admin-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--light-color);
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Admin Tables */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: linear-gradient(135deg, var(--light-color), var(--accent-color));
+    color: var(--dark-color);
+    font-weight: 600;
+    text-align: left;
+    padding: 1rem;
+    font-family: var(--font-secondary);
+}
+
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 51, 102, 0.1);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.admin-table tr:nth-of-type(odd) td {
+    background: rgba(255, 230, 235, 0.2);
+}
+
+/* Sidebar dropdown styles */
+/* Sidebar dropdown (new structure) */
+.sidebar-menu .sidebar-dropdown {
+    position: relative;
+}
+
+.sidebar-menu .sidebar-dropdown>a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding-right: 1.5rem;
+}
+
+.sidebar-menu .sidebar-dropdown .dropdown-arrow {
+    margin-left: 0.5rem;
+    font-size: 0.9em;
+    transition: transform 0.3s;
+}
+
+.sidebar-menu .sidebar-dropdown.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.sidebar-menu .sidebar-submenu {
+    display: none;
+    background: rgba(0, 0, 0, 0.07);
+    padding-left: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.sidebar-menu .sidebar-dropdown.open .sidebar-submenu {
+    display: block;
+}
+
+.sidebar-menu .sidebar-submenu li a {
+    padding-left: 2.5rem;
+    font-size: 0.95em;
+    display: block;
+    color: #333;
+    background: none;
+}
+
+.sidebar-menu .sidebar-submenu li.active a {
+    background: rgba(0, 0, 0, 0.13);
+    color: var(--primary-color);
+}
+
+/* Responsive Design for all Admin Pages */
+@media (max-width: 768px) {
+    .admin-card {
+        margin-bottom: 1rem;
+    }
+}

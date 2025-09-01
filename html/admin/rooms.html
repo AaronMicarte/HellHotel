@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooms Management - HellHotel</title>
+
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- In your HTML head -->
+    <script src="../../assets/js/sidebar-loader.js" defer></script>
+</head>
+
+<body class="admin-page">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <script src="../../assets/js/sidebar-loader.js"></script>
+
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4>Rooms Management</h4>
+                </div>
+
+                <div class="nav-right">
+                    <button id="refreshBtn" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                            <span id="userName">Admin</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><span class="dropdown-item-text">Role: <span id="userRole">admin</span></span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>
+                                    Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Rooms Content -->
+            <div class="dashboard-content">
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs mb-4" id="roomTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="rooms-tab" data-bs-toggle="tab"
+                            data-bs-target="#rooms-content" type="button" role="tab" aria-controls="rooms-content"
+                            aria-selected="true">
+                            <i class="fas fa-bed me-2"></i>Rooms
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="roomtypes-tab" data-bs-toggle="tab"
+                            data-bs-target="#roomtypes-content" type="button" role="tab"
+                            aria-controls="roomtypes-content" aria-selected="false">
+                            <i class="fas fa-tags me-2"></i>Room Types
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="roomTabsContent">
+                    <!-- Rooms Tab -->
+                    <div class="tab-pane fade show active" id="rooms-content" role="tabpanel"
+                        aria-labelledby="rooms-tab">
+                        <!-- Room Stats Overview -->
+                        <div class="row mb-3" id="roomStatsOverview">
+                            <div class="col-6 col-md mb-2">
+                                <div class="card text-center border-primary h-100">
+                                    <div class="card-body p-2">
+                                        <div class="fw-bold fs-5" id="statTotalRooms">0</div>
+                                        <div class="small text-muted">Total Rooms</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md mb-2">
+                                <div class="card text-center border-success h-100">
+                                    <div class="card-body p-2">
+                                        <div class="fw-bold fs-5 text-success" id="statAvailableRooms">0</div>
+                                        <div class="small text-muted">Available</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md mb-2">
+                                <div class="card text-center border-danger h-100">
+                                    <div class="card-body p-2">
+                                        <div class="fw-bold fs-5 text-danger" id="statOccupiedRooms">0</div>
+                                        <div class="small text-muted">Occupied</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md mb-2">
+                                <div class="card text-center border-warning h-100">
+                                    <div class="card-body p-2">
+                                        <div class="fw-bold fs-5 text-warning" id="statMaintenanceRooms">0</div>
+                                        <div class="small text-muted">Maintenance</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md mb-2">
+                                <div class="card text-center border-info h-100">
+                                    <div class="card-body p-2">
+                                        <div class="fw-bold fs-5 text-info" id="statReservedRooms">0</div>
+                                        <div class="small text-muted">Reserved</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Compact Filter Row -->
+                        <!-- Chips/Tags Feature Filter UI -->
+                        <div class="mb-2" id="featureChipsContainer" style="min-height:38px;">
+                            <!-- Chips will be injected here by JS -->
+                        </div>
+                        <form id="roomsFilterForm" class="row g-2 align-items-end mb-3">
+                            <div class="col-md-3">
+                                <input type="text" id="searchRoom" class="form-control"
+                                    placeholder="Search room #, type, status...">
+                            </div>
+                            <div class="col-md-2">
+                                <select id="typeFilter" class="form-select">
+                                    <option value="">All Types</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select id="statusFilter" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <option value="available">Available</option>
+                                    <option value="occupied">Occupied</option>
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="reserved">Reserved</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex gap-2">
+                                <button id="applyFilters" class="btn btn-primary w-100" type="button">
+                                    <i class="fas fa-filter"></i>
+                                </button>
+                                <button id="addRoomBtn" class="btn btn-primary w-100" type="button">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Rooms Table -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5><i class="fas fa-bed"></i> Rooms</h5>
+                                        <div>
+                                            <span id="totalRooms" class="badge bg-primary">0</span> Room(s)
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Add legend for manage images icon in room types -->
+                                        <div class="mb-2">
+                                            <i class="fas fa-images text-success"></i> <small>Manage Room Type
+                                                Images</small>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Room #</th>
+                                                        <th>Type</th>
+                                                        <th>Features</th>
+                                                        <th>Status</th>
+                                                        <th>Capacity</th>
+                                                        <th>Price/24h</th>
+                                                        <th>Last Updated</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="roomsTableBody">
+                                                    <tr>
+                                                        <td colspan="7" class="text-center">
+                                                            <div class="admin-loading">Loading rooms data...</div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Types Tab -->
+                    <div class="tab-pane fade" id="roomtypes-content" role="tabpanel" aria-labelledby="roomtypes-tab">
+                        <!-- Room Types Action Bar -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <h4>Manage Room Types</h4>
+                                <p class="text-muted">Create and manage room types with different features and pricing
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button id="addRoomTypeBtn" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Add Room Type
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Room Types Table -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-tags"></i> Room Types</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Image</th>
+                                                        <th>Type Name</th>
+                                                        <th>Description</th>
+                                                        <th>Features</th>
+                                                        <th>Max Capacity</th>
+                                                        <th>Price/Stay</th>
+                                                        <th>Room Size</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="roomTypesTableBody">
+                                                    <tr>
+                                                        <td colspan="7" class="text-center">
+                                                            <div class="admin-loading">Loading room types data...</div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Modal -->
+    <div class="modal fade" id="roomModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="roomModalLabel">Add New Room</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="roomForm">
+                        <input type="hidden" id="roomId">
+                        <div class="mb-3">
+                            <label for="roomNumber" class="form-label">Room Number</label>
+                            <input type="text" class="form-control" id="roomNumber" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="roomType" class="form-label">Room Type</label>
+                            <select class="form-select" id="roomType" required>
+                                <option value="">-- Select Room Type --</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="saveRoomBtn" class="btn btn-primary">Save Room</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blank Modal for Update Room/Room Type (used by JS) -->
+    <div class="modal fade" id="blank-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl"><!-- modal-xl for big view -->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="blank-modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="blank-main-div">
+                    <!-- Dynamic content injected by JS -->
+                </div>
+                <div class="modal-footer" id="blank-modal-footer">
+                    <!-- Dynamic footer injected by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Type Modal -->
+    <div class="modal fade" id="roomTypeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg"><!-- modal-lg for bigger modal -->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="roomTypeModalLabel">Add New Room Type</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="roomTypeForm">
+                        <input type="hidden" id="roomTypeId">
+                        <div class="mb-3">
+                            <label for="typeName" class="form-label">Type Name</label>
+                            <input type="text" class="form-control" id="typeName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="typeDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="typeDescription" rows="3"></textarea>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="maxCapacity" class="form-label">Max Capacity</label>
+                                <input type="number" class="form-control" id="maxCapacity" min="1" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="pricePerStay" class="form-label">Price Per Stay (₱)</label>
+                                <input type="number" class="form-control" id="pricePerStay" min="0" step="0.01"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="roomSize" class="form-label">Room Size (sqm)</label>
+                            <input type="number" class="form-control" id="roomSize" min="0" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label for="roomImage" class="form-label">Room Image</label>
+                            <input type="file" class="form-control" id="roomImage" accept="image/*">
+                            <div class="form-text">Upload an image for the room type (JPG, PNG, etc.)</div>
+                            <div id="imagePreview" class="mt-2"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="saveRoomTypeBtn" class="btn btn-primary">Save Room Type</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Modal -->
+    <div class="modal fade" id="featureModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Feature</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="newFeatureName" class="form-control" placeholder="Feature name">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveFeatureBtn">Add Feature</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script src="../../assets/js/admin/auth.js"></script>
+    <!-- Use type="module" for your admin/rooms.js -->
+    <script type="module" src="../../assets/js/admin/rooms.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.jQuery && $('#featureFilter').length) {
+                $('#featureFilter').select2({
+                    placeholder: "Filter by Features",
+                    allowClear: true,
+                    width: '100%',
+                    dropdownAutoWidth: true
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

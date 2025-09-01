@@ -1,0 +1,21 @@
+.user-action-icon {
+    background: none;
+    border: none;
+    padding: 0 6px;
+    color: #495057;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: color 0.2s;
+    outline: none;
+}
+
+.user-action-icon:hover,
+.user-action-icon:focus {
+    color: #0d6efd;
+    background: none;
+    outline: none;
+}
+
+.user-action-icon:active {
+    color: #084298;
+}

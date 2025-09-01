@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservation Calendar - HellHotel</title>
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/reservation-calendar.css">
+    <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+    <script src="../../assets/js/sidebar-loader.js" defer></script>
+</head>
+
+<body class="admin-page">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <script src="../../assets/js/sidebar-loader.js"></script>
+        <!-- Main Content -->
+        <div class="main-content">
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4>Reservation Calendar</h4>
+                </div>
+                <div class="nav-right">
+                    <button id="refreshBtn" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                            <span id="userName">Admin</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><span class="dropdown-item-text">Role: <span id="userRole">admin</span></span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>
+                                    Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <div class="dashboard-content" style="height:100%;min-height:900px;display:flex;flex-direction:column;">
+                <!-- Hidden Add Reservation Button for JS compatibility -->
+                <button id="addReservationBtn" class="btn btn-primary d-none" type="button"></button>
+                <div id="reservationCalendar" style="flex:1 1 0%;height:100%;min-height:700px;"></div>
+                <!-- Reservation Modal (for Add) -->
+                <div class="modal fade" id="reservationModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h4 class="modal-title" id="reservationModalLabel"><i class="fas fa-plus me-2"></i>Add
+                                    New Reservation</h4>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-4">
+                                <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                                    <i class="fas fa-info-circle fa-lg me-2"></i>
+                                    <div>
+                                        Fill in all required fields. Select an existing guest or add a new one. Room and
+                                        status options will update automatically.
+                                    </div>
+                                </div>
+                                <form id="reservationForm">
+                                    <input type="hidden" id="reservationId">
+                                    <div class="row g-4">
+                                        <div class="col-lg-6">
+                                            <div class="card mb-4 shadow-sm border-0">
+                                                <div class="card-header bg-light border-bottom-0">
+                                                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>Guest Information
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <label for="guestSearchInput" class="form-label">Search
+                                                                Existing Guest</label>
+                                                            <input type="text" id="guestSearchInput"
+                                                                class="form-control"
+                                                                placeholder="Type name or email...">
+                                                            <div id="guestSearchDropdown"
+                                                                class="list-group position-absolute w-100"
+                                                                style="z-index: 10; display: none;"></div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="firstName" class="form-label">First Name</label>
+                                                            <input type="text" id="firstName" class="form-control"
+                                                                required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="lastName" class="form-label">Last Name</label>
+                                                            <input type="text" id="lastName" class="form-control"
+                                                                required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="middleName" class="form-label">Middle
+                                                                Name</label>
+                                                            <input type="text" id="middleName" class="form-control">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="dateOfBirth" class="form-label">Date of
+                                                                Birth</label>
+                                                            <input type="date" id="dateOfBirth" class="form-control"
+                                                                required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="suffix" class="form-label">Suffix</label>
+                                                            <input type="text" id="suffix" class="form-control">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="email" class="form-label">Email</label>
+                                                            <input type="email" id="email" class="form-control"
+                                                                required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="phone" class="form-label">Phone</label>
+                                                            <input type="tel" id="phone" class="form-control" required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="idType" class="form-label">ID Type</label>
+                                                            <select id="idType" class="form-select" required>
+                                                                <option value="">-- Select ID Type --</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="idNumber" class="form-label">ID Number</label>
+                                                            <input type="text" id="idNumber" class="form-control"
+                                                                required>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <div class="card mb-4 shadow-sm border-0">
+                                                <div class="card-header bg-light border-bottom-0">
+                                                    <h6 class="mb-0"><i class="fas fa-bed me-2"></i>Stay Information
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-6">
+                                                            <label for="checkInDate" class="form-label">Check-in
+                                                                Date</label>
+                                                            <input type="date" id="checkInDate" class="form-control"
+                                                                required>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label for="checkOutDate" class="form-label">Check-out
+                                                                Date</label>
+                                                            <input type="date" id="checkOutDate" class="form-control"
+                                                                required readonly>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="card mb-4 shadow-sm border-0">
+                                                <div class="card-header bg-light border-bottom-0">
+                                                    <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Reservation Status
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-12">
+                                                            <label class="form-label">Status</label>
+                                                            <input type="text" class="form-control" value="Pending"
+                                                                readonly disabled>
+                                                            <input type="hidden" id="statusSelect" value="1">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Companion UI: Max Capacity, Number of Companions, Companion Names -->
+                                    <!-- Dynamic Room Booking Section -->
+                                    <div class="row g-0">
+                                        <div class="col-12">
+                                            <div class="card mb-4 border-0 shadow-lg animate__animated animate__fadeIn">
+                                                <div class="card-header bg-gradient-primary border-bottom-0 d-flex align-items-center justify-content-between"
+                                                    style="background: linear-gradient(90deg, #3b0101 0%, #D20707 100%); color: #fff;">
+                                                    <div>
+                                                        <i class="fas fa-bed fa-lg me-2"></i>
+                                                        <h6 class="mb-0 d-inline">Rooms &amp; Companions</h6>
+                                                    </div>
+                                                    <button type="button" class="btn btn-light btn-sm fw-bold shadow-sm"
+                                                        id="addRoomBtn" title="Add Room"><i class="fas fa-plus"></i> Add
+                                                        Room</button>
+                                                </div>
+                                                <div class="card-body py-4" id="multiRoomContainer"
+                                                    style="background: #f8fafd;"></div>
+                                                <div class="form-text text-muted mt-2 ms-3"><i
+                                                        class="fas fa-info-circle me-1"></i>Each companion must present
+                                                    a valid ID upon check-in. <span class="fw-semibold">The main guest
+                                                        is auto-assigned to the first room.</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Room Summary Section -->
+                                    <div class="row g-0">
+                                        <div class="col-12">
+                                            <div class="card mb-4 shadow-sm border-0">
+                                                <div class="card-header bg-light border-bottom-0">
+                                                    <h6 class="mb-0"><i
+                                                            class="fas fa-list-ul me-2 text-primary"></i>Booking Summary
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body" id="multiRoomSummary"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Payment Method and Partial Payment in Booking Summary -->
+                                    <div class="row g-0">
+                                        <div class="col-12">
+                                            <div class="card mb-4 shadow-sm border-0">
+                                                <div class="card-header bg-light border-bottom-0">
+                                                    <h6 class="mb-0"><i
+                                                            class="fas fa-credit-card me-2 text-info"></i>Payment Method
+                                                        & Partial Payment</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row g-3 align-items-center">
+                                                        <div class="col-md-6">
+                                                            <label for="paymentMethodSelect" class="form-label mb-1"><i
+                                                                    class="fas fa-credit-card fa-sm text-info me-1"></i>Payment
+                                                                Method</label>
+                                                            <select id="paymentMethodSelect"
+                                                                class="form-select form-select-sm">
+                                                                <option value="">Loading...</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="fs-5 fw-bold text-warning">Partial Payment
+                                                                (50%): <span id="partialPayment">₱0.00</span></div>
+                                                            <div class="small text-muted">This is 50% of the total for
+                                                                all rooms booked.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-secondary btn-m"
+                                    data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" id="saveReservationBtn" class="btn btn-primary btn-m">Save
+                                    Reservation</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="../../assets/js/admin/auth.js"></script>
+    <script src="../../assets/js/admin/reservations-calendar.js"></script>
+</body>
+
+</html>

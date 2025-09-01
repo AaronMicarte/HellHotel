@@ -1,0 +1,545 @@
+/* Simple Room Details Styles */
+
+:root {
+    --primary-color: #FF3366;
+    --secondary-color: #FF6B8B;
+    --accent-color: #FFE6EB;
+    --dark-color: #2C3E50;
+    --light-color: #F8F9FA;
+    --text-color: #2D3436;
+    --text-muted: #6C757D;
+}
+
+/* Override Bootstrap primary colors */
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.btn-primary:hover {
+    background-color: #e02e5c !important;
+    border-color: #e02e5c !important;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-check:checked+.btn-outline-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.progress-bar {
+    background-color: var(--primary-color) !important;
+}
+
+.spinner-border.text-primary {
+    color: var(--primary-color) !important;
+}
+
+/* Simple transitions */
+#roomContent,
+#roomError {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#roomContent:not(.d-none),
+#roomError:not(.d-none) {
+    opacity: 1;
+}
+
+/* Feature items */
+.feature-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.feature-item i {
+    color: var(--primary-color);
+    margin-right: 8px;
+    width: 16px;
+}
+
+/* Step indicators */
+.step-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.step-label.active {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Form styles */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(255, 51, 102, 0.25);
+}
+
+/* Simple hover effects */
+.border:hover {
+    border-color: rgba(255, 51, 102, 0.3) !important;
+    transition: border-color 0.3s ease;
+}
+
+/* Payment Modal Styles */
+.ewallet-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ewallet-card {
+    text-align: center;
+    padding: 1.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    background: white;
+    height: 100%;
+}
+
+.ewallet-option:hover .ewallet-card {
+    border-color: var(--primary-color);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.ewallet-option.active .ewallet-card {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--accent-color), rgba(255, 230, 235, 0.5));
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(255, 51, 102, 0.2);
+}
+
+.ewallet-logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* File Upload Styles */
+.upload-area {
+    border: 3px dashed #dee2e6;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(248, 249, 250, 0.8);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.upload-area:hover {
+    border-color: var(--primary-color);
+    background: rgba(255, 51, 102, 0.05);
+}
+
+.upload-area.drag-over {
+    border-color: var(--primary-color);
+    background: rgba(255, 51, 102, 0.1);
+    transform: scale(1.02);
+}
+
+.upload-placeholder {
+    color: #6c757d;
+}
+
+.upload-preview {
+    text-align: center;
+}
+
+.upload-preview img {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 8px;
+}
+
+.upload-info {
+    margin-top: 1rem;
+}
+
+/* Verification Checklist */
+.verification-checklist {
+    background: rgba(248, 249, 250, 0.8);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.checklist-item:last-child {
+    margin-bottom: 0;
+}
+
+.checklist-item i.text-success {
+    color: #28a745 !important;
+}
+
+/* Bank Details Styles */
+.bank-details-card {
+    background: rgba(248, 249, 250, 0.8);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    height: 100%;
+}
+
+.bank-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.bank-info-item {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.bank-info-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.bank-info-item.highlight {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--accent-color), rgba(255, 230, 235, 0.3));
+}
+
+.info-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.info-value {
+    font-weight: 600;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.info-value.amount {
+    font-size: 1.25rem;
+    color: var(--primary-color);
+}
+
+/* Transfer Instructions */
+.transfer-instructions-card {
+    background: rgba(248, 249, 250, 0.8);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    height: 100%;
+}
+
+.instruction-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.step-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateX(3px);
+}
+
+.step-number {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(255, 51, 102, 0.3);
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-content strong {
+    color: var(--dark-color);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.step-content p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Receipt Upload Section */
+.receipt-upload-section {
+    background: rgba(248, 249, 250, 0.5);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+/* Enhanced Alert Styles */
+.alert {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    color: #856404;
+    border-left: 4px solid #ffc107;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1, #a8dadc);
+    color: #0c5460;
+    border-left: 4px solid #17a2b8;
+}
+
+.alert-primary {
+    background: linear-gradient(135deg, var(--accent-color), rgba(255, 230, 235, 0.7));
+    color: var(--dark-color);
+    border-left: 4px solid var(--primary-color);
+}
+
+.alert ul {
+    margin-bottom: 0;
+    padding-left: 1.5rem;
+}
+
+.alert li {
+    margin-bottom: 0.25rem;
+}
+
+/* Copy Button Enhancements */
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary.btn-sm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(255, 51, 102, 0.2);
+}
+
+/* Modal Content Improvements */
+.modal-content {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.modal-header {
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.modal-header.bg-info {
+    background: linear-gradient(135deg, #17a2b8, #20c997) !important;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1.5rem 2rem;
+    background: rgba(248, 249, 250, 0.5);
+}
+
+/* Reference Format Styling */
+.text-monospace {
+    font-family: 'Courier New', Courier, monospace;
+    background: rgba(248, 249, 250, 0.8);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+/* Responsive Modal Adjustments */
+@media (max-width: 1200px) {
+    .modal-xl {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-header,
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+    }
+
+    .ewallet-card {
+        padding: 1rem;
+    }
+
+    .ewallet-logo {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+
+    .bank-details-card,
+    .transfer-instructions-card {
+        padding: 1.5rem;
+    }
+
+    .upload-area {
+        padding: 1.5rem;
+        min-height: 150px;
+    }
+
+    .step-item {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+
+    .step-number {
+        width: 25px;
+        height: 25px;
+        font-size: 0.8rem;
+    }
+
+    .info-value {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .instruction-steps {
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-xl {
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .modal-content {
+        border-radius: 0;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    .verification-checklist {
+        margin-top: 1rem;
+    }
+
+    .upload-preview img {
+        max-width: 150px;
+        max-height: 100px;
+    }
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .sticky-top {
+        position: relative !important;
+        top: auto !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .d-flex.gap-2 {
+        flex-direction: column;
+    }
+
+    .d-flex.gap-2 .btn {
+        margin-bottom: 8px;
+    }
+
+    .d-flex.gap-3 {
+        flex-direction: column;
+    }
+
+    .d-flex.gap-3 .btn {
+        margin-bottom: 8px;
+    }
+}
+
+/* Loading and error states */
+#roomLoading {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#roomError {
+    min-height: 300px;
+}

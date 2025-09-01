@@ -1,0 +1,266 @@
+/* Reservation Calendar - Professional Enterprise Design */
+/* Color scheme from style.css (primary: #d20707, secondary: #050505, accent: #fff) */
+
+:root {
+    --calendar-primary: #d20707;
+    --calendar-secondary: #050505;
+    --calendar-accent: #fff;
+    --calendar-bg: #fff;
+    --calendar-surface: #F8F9FA;
+    --calendar-border: #e9ecef;
+    --calendar-shadow: 0 4px 24px rgba(210, 7, 7, 0.08);
+    --calendar-radius: 14px;
+    --calendar-font: 'Poppins', 'Inter', Arial, sans-serif;
+    --calendar-status-green: #28a745;
+    --calendar-status-blue: #0ea5e9;
+    --calendar-status-gray: #6c757d;
+    --calendar-status-yellow: #ffc107;
+    --calendar-status-red: #dc3545;
+    --calendar-status-orange: #fd7e14;
+}
+
+/* Calendar Container */
+#reservationCalendar {
+    background: var(--calendar-bg);
+    border-radius: var(--calendar-radius);
+    box-shadow: var(--calendar-shadow);
+    border: 1px solid var(--calendar-border);
+    font-family: var(--calendar-font);
+    transition: box-shadow 0.3s;
+    min-height: 600px;
+    margin-bottom: 1.5rem;
+}
+
+#reservationCalendar:hover {
+    box-shadow: 0 8px 32px rgba(210, 7, 7, 0.13);
+}
+
+/* Toolbar */
+.fc-toolbar {
+    background: linear-gradient(90deg, var(--calendar-primary), var(--calendar-secondary));
+    color: #fff;
+    border-radius: var(--calendar-radius) var(--calendar-radius) 0 0;
+    padding: 16px 24px !important;
+    margin-bottom: 0 !important;
+}
+
+.fc-toolbar-title {
+    color: #fff !important;
+    font-weight: 700 !important;
+    font-size: 1.3rem !important;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fc-button {
+    background: #fff !important;
+    color: var(--calendar-primary) !important;
+    border: 1px solid var(--calendar-primary) !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    padding: 7px 18px !important;
+    margin: 0 2px !important;
+    transition: all 0.2s;
+}
+
+.fc-button-active,
+.fc-button:active {
+    background: var(--calendar-primary) !important;
+    color: #fff !important;
+}
+
+.fc-button:hover {
+    background: var(--calendar-secondary) !important;
+    color: #fff !important;
+    border-color: var(--calendar-secondary) !important;
+}
+
+/* Day Cells */
+.fc-daygrid-day {
+    border-color: var(--calendar-border) !important;
+    transition: background 0.2s;
+}
+
+.fc-daygrid-day:hover {
+    background: rgba(210, 7, 7, 0.04) !important;
+    cursor: pointer;
+}
+
+.fc-day-today {
+    background: linear-gradient(135deg, #fff0f0 0%, #ffeaea 100%) !important;
+    border: 2px solid var(--calendar-primary) !important;
+}
+
+.fc-daygrid-day-number {
+    color: var(--calendar-secondary);
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 8px;
+}
+
+/* Events */
+.fc-event {
+    border-radius: 8px !important;
+    border: 1px solid #e9ecef !important;
+    padding: 4px 10px !important;
+    margin: 2px 0 !important;
+    font-weight: 600 !important;
+    font-size: 0.97rem !important;
+    box-shadow: 0 2px 8px rgba(210, 7, 7, 0.08);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.fc-event:hover {
+    box-shadow: 0 4px 16px rgba(210, 7, 7, 0.14);
+    transform: translateY(-2px) scale(1.01);
+}
+
+.fc-event-title {
+    font-weight: 600 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Today Highlight */
+.fc-day-today .fc-daygrid-day-number {
+    color: var(--calendar-primary) !important;
+    font-weight: 700;
+}
+
+/* Status Badges */
+.badge {
+    border-radius: 8px !important;
+    font-size: 0.95em !important;
+    font-weight: 600 !important;
+    padding: 6px 14px !important;
+    letter-spacing: 0.02em;
+}
+
+.badge.status-checked-in {
+    background: var(--calendar-status-green) !important;
+    color: #fff !important;
+}
+
+.badge.status-checked-out {
+    background: var(--calendar-status-gray) !important;
+    color: #fff !important;
+}
+
+.badge.status-reserved,
+.badge.status-confirmed {
+    background: var(--calendar-status-blue) !important;
+    color: #fff !important;
+}
+
+.badge.status-pending {
+    background: var(--calendar-status-yellow) !important;
+    color: #212529 !important;
+}
+
+.badge.status-cancelled {
+    background: var(--calendar-status-red) !important;
+    color: #fff !important;
+}
+
+.badge.status-no-show {
+    background: var(--calendar-status-orange) !important;
+    color: #fff !important;
+}
+
+/* Guest Link */
+.guest-link {
+    color: var(--calendar-primary) !important;
+    font-weight: 600 !important;
+    text-decoration: underline dotted;
+    transition: color 0.2s;
+}
+
+.guest-link:hover {
+    color: var(--calendar-secondary) !important;
+    text-decoration: underline solid;
+}
+
+/* Modal (Swal2) */
+.swal2-popup {
+    border-radius: 16px !important;
+    border: 1px solid var(--calendar-border) !important;
+    font-family: var(--calendar-font);
+    padding: 0 !important;
+}
+
+.swal2-title {
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    padding: 18px 18px 0 18px !important;
+}
+
+.swal2-html-container {
+    color: var(--calendar-secondary);
+    font-size: 1rem;
+    padding: 12px 18px 18px 18px !important;
+}
+
+.swal2-close {
+    font-size: 1.5rem !important;
+    background: transparent !important;
+    border-radius: 50% !important;
+    transition: color 0.2s;
+}
+
+.swal2-close:hover {
+    background: #ffeaea !important;
+}
+
+/* List Items */
+.list-group-item {
+    border-radius: 8px !important;
+    border: 1px solid #f3f3f3 !important;
+    margin-bottom: 8px;
+    background: #fff;
+    transition: box-shadow 0.2s;
+}
+
+.list-group-item:hover {
+    box-shadow: 0 2px 8px rgba(210, 7, 7, 0.07);
+}
+
+/* Loading Spinner */
+.reservation-calendar-spinner {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    border: 4px solid #ffeaea;
+    border-radius: 50%;
+    border-top-color: var(--calendar-primary);
+    animation: reservation-calendar-spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes reservation-calendar-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Legend */
+.calendar-legend {
+    margin-bottom: 18px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #reservationCalendar {
+        border-radius: 8px;
+        min-height: 400px;
+    }
+
+    .fc-toolbar {
+        padding: 10px !important;
+    }
+
+    .swal2-popup {
+        border-radius: 8px !important;
+    }
+}

@@ -1,0 +1,158 @@
+/* Booking Form Step Visibility & Consistency */
+.form-step {
+    display: none;
+    animation: fadeIn 0.3s;
+}
+
+.form-step.active,
+.form-step:not(.d-none) {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Field Spacing and Label Consistency */
+.form-step .form-label {
+    font-weight: 500;
+    color: #2C3E50;
+    margin-bottom: 0.25rem;
+}
+
+.form-step .form-control,
+.form-step .form-select {
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border: 1.5px solid #e9ecef;
+    background: #fff;
+    transition: border-color 0.2s;
+}
+
+.form-step .form-control:focus,
+.form-step .form-select:focus {
+    border-color: #FF3366;
+    box-shadow: 0 0 0 0.1rem rgba(255, 51, 102, 0.08);
+}
+
+.form-step .is-invalid {
+    border-color: #dc3545 !important;
+    background: #fff0f3;
+}
+
+.form-step .form-label.required::after {
+    content: ' *';
+    color: #FF3366;
+}
+
+/* Step Navigation Buttons */
+.d-flex.gap-2.mt-4 .btn {
+    min-width: 120px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* Progress Bar Consistency */
+.booking-progress .progress-bar {
+    background-color: #FF3366 !important;
+    transition: width 0.3s;
+}
+
+/* Step Labels */
+.step-label {
+    color: #6C757D;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.step-label.active {
+    color: #FF3366;
+    font-weight: 700;
+}
+
+/* Card Consistency */
+.booking-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.06);
+    border: 1.5px solid #f3f3f3;
+    padding: 2rem;
+}
+
+@media (max-width: 991px) {
+    .booking-card {
+        padding: 1.2rem;
+    }
+}
+
+/* Sidebar Consistency */
+.sticky-top {
+    top: 100px !important;
+}
+
+.card-header.bg-primary {
+    background: linear-gradient(135deg, #FF3366, #FF6B8B) !important;
+    color: #fff !important;
+    border-radius: 16px 16px 0 0;
+}
+
+.card-header.bg-light {
+    background: #f8f9fa !important;
+    border-radius: 16px 16px 0 0;
+}
+
+.card {
+    border-radius: 16px;
+    border: 1.5px solid #e9ecef;
+    box-shadow: 0 2px 12px rgba(44, 62, 80, 0.05);
+}
+
+/* Summary Section */
+#bookingSummaryContent {
+    font-size: 1rem;
+}
+
+#bookingSummaryContent .room-summary h6 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+#bookingSummaryContent .room-details,
+#bookingSummaryContent .pricing-summary {
+    font-size: 0.97rem;
+}
+
+#bookingSummaryContent .alert-info {
+    font-size: 0.95rem;
+    border-radius: 10px;
+    margin-top: 1rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .booking-card {
+        padding: 1rem;
+    }
+
+    .card-header,
+    .card-body {
+        padding: 1rem !important;
+    }
+
+    .d-flex.gap-2.mt-4 {
+        flex-direction: column;
+    }
+
+    .d-flex.gap-2.mt-4 .btn {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+}

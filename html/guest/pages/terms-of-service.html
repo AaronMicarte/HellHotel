@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - HellHotel</title>
+
+    <!-- External CSS Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+</head>
+
+<body>
+    <!-- Header will be injected here -->
+    <div id="header-container"></div>
+
+    <div class="legal-page">
+        <div class="legal-container">
+            <div class="legal-header">
+                <h1>Terms of Service</h1>
+                <p class="last-updated">Last updated: January 2025</p>
+            </div>
+
+            <div class="legal-content">
+                <h2>1. Acceptance of Terms</h2>
+                <p>By accessing and using HellHotel services, you accept and agree to be bound by the terms and
+                    provision of this agreement.</p>
+
+                <h2>2. 24-Hour Booking Policy</h2>
+                <p>All room bookings are based on a 24-hour period starting from your selected check-in time.</p>
+                <ul>
+                    <li>Check-in time is flexible and selected by the guest</li>
+                    <li>Check-out is automatically 24 hours after check-in</li>
+                    <li>No extensions beyond the 24-hour period without new booking</li>
+                </ul>
+
+                <h2>3. Cancellation Policy</h2>
+                <p><strong>No Cancellation Policy:</strong> Once your booking is confirmed with the 50% advance payment,
+                    cancellations are not permitted.</p>
+
+                <h2>4. Payment Terms</h2>
+                <ul>
+                    <li>50% advance payment required to confirm booking</li>
+                    <li>Remaining 50% due at check-in</li>
+                    <li>Accepted payment methods: GCash, Maya, Bank Transfer</li>
+                </ul>
+
+                <h2>5. Guest Responsibilities</h2>
+                <ul>
+                    <li>Provide valid identification at check-in</li>
+                    <li>Maintain order and respect hotel property</li>
+                    <li>Follow hotel rules and regulations</li>
+                    <li>Report any damages immediately</li>
+                </ul>
+
+                <h2>6. Hotel Responsibilities</h2>
+                <ul>
+                    <li>Provide clean and safe accommodation</li>
+                    <li>Maintain advertised amenities</li>
+                    <li>Respect guest privacy</li>
+                    <li>Handle complaints promptly</li>
+                </ul>
+
+                <div class="contact-info-legal">
+                    <h3>Contact Information</h3>
+                    <p>For questions about these Terms of Service, contact us at:</p>
+                    <ul>
+                        <li>Email: hellhotel@gmail.com</li>
+                        <li>Phone: +63 992 507 7173</li>
+                        <li>Address: Corrales Street, Cagayan de Oro City</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="back-to-home">
+                <a href="../index.html" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer will be injected here -->
+    <div id="footer-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/components.js"></script>
+    <script src="../../../assets/js/main.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Load header and footer
+            if (window.Components) {
+                window.Components.loadHeader('header-container', '../');
+                window.Components.loadFooter('footer-container', '../');
+            }
+        });
+    </script>
+</body>
+
+</html>
