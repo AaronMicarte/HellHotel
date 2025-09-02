@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/room-details.css">
+    <link rel="stylesheet" href="../../assets/css/booking-form.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
@@ -110,15 +110,17 @@
             display: none;
         }
 
-        /* Booking Card: Larger and more prominent */
+        /* Booking Card: Use full container width with modern design */
         .booking-card {
-            background: rgba(26, 26, 26, 0.98);
-            border-radius: 32px;
-            /* box-shadow removed */
-            padding: 3.5rem 2.5rem 2.5rem 2.5rem;
-            max-width: 1200px;
+            background: linear-gradient(145deg, rgba(5, 5, 5, 0.98), rgba(26, 26, 26, 0.95));
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: none;
             margin: 0 auto 2.5rem auto;
             min-height: 650px;
+            border: 1px solid rgba(210, 7, 7, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         .guest-section {
@@ -255,6 +257,244 @@
             }
         }
 
+        /* Room type card styles */
+        .room-type-card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--hell-accent);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .room-type-card .card-title {
+            color: var(--hell-accent);
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .room-type-card .max-guests {
+            color: var(--hell-light);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .room-type-card .price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--hell-orange);
+            margin-top: auto;
+            margin-bottom: 1rem;
+        }
+
+        .room-type-card .quantity-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: auto;
+        }
+
+        .room-type-card .quantity-control .btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 50%;
+        }
+
+        .room-type-card .quantity-control input {
+            width: 60px;
+            text-align: center;
+            border: 1px solid var(--hell-accent);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            margin: 0 0.5rem;
+        }
+
+        /* Minimal Design - No Gradients, No Hovers */
+
+        /* Booking Card: Simple and Clean */
+        .booking-card {
+            background: rgba(26, 26, 26, 0.95);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: none;
+            margin: 0 auto 2rem auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Simple Section Styling */
+        .enhanced-date-section,
+        .enhanced-room-section,
+        .enhanced-companions-section,
+        .enhanced-summary-section {
+            background: rgba(26, 26, 26, 0.8);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-subtitle {
+            color: #d20707;
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+
+        .date-input-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Simple Payment Section */
+        .payment-section-container {
+            background: rgba(26, 26, 26, 0.8);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+        }
+
+        .payment-input-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+        }
+
+        .form-hint {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        /* Simple Companions Section */
+        .companions-full-width {
+            width: 100%;
+        }
+
+        .companion-container {
+            background: rgba(26, 26, 26, 0.8);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .companion-header {
+            font-weight: 600;
+            color: #d20707;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Simple Room Cards */
+        .room-type-card {
+            background: rgba(26, 26, 26, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .room-type-card.selected-room {
+            border-color: #d20707;
+        }
+
+        /* Simple Summary Box */
+        .summary-box {
+            background: rgba(26, 26, 26, 0.8);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-title {
+            color: #d20707;
+            font-weight: 600;
+            font-size: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Simple Form Controls */
+        .form-control,
+        .form-select {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #222;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #d20707;
+            box-shadow: none;
+            color: #111;
+        }
+
+        .form-label {
+            color: #d20707;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Alert Simple */
+        .alert-info {
+            background: rgba(26, 26, 26, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 8px;
+        }
+
+        /* Responsive Enhancements */
+        @media (max-width: 768px) {
+
+            .enhanced-date-section,
+            .enhanced-room-section,
+            .enhanced-companions-section,
+            .enhanced-summary-section,
+            .payment-section-container {
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .booking-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .section-subtitle {
+                font-size: 1.2rem;
+            }
+        }
+
         @media (max-width: 900px) {
             .booking-card {
                 max-width: 99vw;
@@ -276,7 +516,7 @@
 
 <body>
     <div id="header-placeholder"></div>
-    <div class="container py-5">
+    <div class="container-xl py-5">
         <div class="toast-container" id="toastContainer"></div>
         <div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
             <a href="selected-room.html?type=" id="backToRoomDetailsBtn" class="btn btn-outline-light"
@@ -373,42 +613,56 @@
             <!-- Step 2: Booking Details -->
             <form id="bookingDetailsForm" class="step-form d-none">
                 <h3 class="mb-4 text-center">Booking Details</h3>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Room Type <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="roomType" readonly>
-                        </div>
-                        <div class="mb-3">
+
+                <!-- Date Selection -->
+                <div class="mb-4">
+                    <h5 class="text-danger mb-3">
+                        <i class="fas fa-calendar-alt me-2"></i>Select Your Dates
+                    </h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
                             <label class="form-label">Check-in Date <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="checkInDate" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="col-md-6">
                             <label class="form-label">Check-out Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="checkOutDate" readonly required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Guests <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="guests" min="1" max="10" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Check-in Time <span class="text-danger">*</span></label>
-                            <input type="time" class="form-control" id="checkInTime" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Check-out Time <span class="text-danger">*</span></label>
-                            <input type="time" class="form-control" id="checkOutTime" readonly required>
+                            <input type="date" class="form-control" id="checkOutDate" required>
                         </div>
                     </div>
                 </div>
-                <hr class="my-4" style="border-color:var(--hell-accent, #ff6b6b);opacity:.4;">
-                <div class="step-actions mt-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-light px-4" id="backToStep1Btn">
+
+                <!-- Room Selection -->
+                <div class="mb-4">
+                    <h5 class="text-danger mb-3">
+                        <i class="fas fa-bed me-2"></i>Select Room Types
+                    </h5>
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i> You can select multiple room types and quantities for
+                        your booking.
+                    </div>
+                    <div class="row g-4" id="roomTypesContainer">
+                        <!-- Room type cards will be loaded here dynamically -->
+                        <div class="col-12 text-center py-4">
+                            <div class="spinner-border text-light" role="status">
+                                <span class="visually-hidden">Loading room types...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Companions Section -->
+                <div class="mb-4">
+                    <div id="companionsContainer">
+                        <!-- Companion fields will be added here dynamically -->
+                    </div>
+                </div>
+
+                <hr class="my-5" style="border-color: var(--primary-color); opacity: 0.3;">
+                <div class="step-actions mt-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-light px-5" id="backToStep1Btn">
                         <i class="fas fa-arrow-left me-2"></i>Back
                     </button>
-                    <button type="button" class="btn btn-hell px-4" id="toStep3Btn">
+                    <button type="button" class="btn btn-hell px-5" id="toStep3Btn">
                         Next <i class="fas fa-arrow-right ms-2"></i>
                     </button>
                 </div>
@@ -416,33 +670,73 @@
             <!-- Step 3: Payment -->
             <form id="paymentForm" class="step-form d-none">
                 <h3 class="mb-4 text-center">Payment</h3>
-                <div class="summary-box mb-4">
-                    <div class="summary-title mb-2">Booking Summary</div>
-                    <div><span class="summary-value" id="summaryRoomType"></span></div>
-                    <div><span class="summary-value" id="summaryDates"></span></div>
-                    <div><span class="summary-value" id="summaryGuests"></span></div>
-                    <div><span class="summary-value" id="summaryPrice"></span></div>
-                    <div><span class="summary-value text-danger" id="summaryDownPayment"></span></div>
-                </div>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <label class="form-label">Payment Method <span class="text-danger">*</span></label>
-                        <select class="form-select" id="paymentMethod" required>
-                            <option value="">Select Payment Category</option>
-                        </select>
-                        <div id="chosenPaymentMethodInfo"></div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Amount to Pay (50% Downpayment)</label>
-                        <input type="text" class="form-control" id="amountToPay" readonly>
+
+                <!-- Summary Section -->
+                <div class="mb-4">
+                    <div class="bg-dark p-3 rounded border">
+                        <h5 class="text-danger mb-3">
+                            <i class="fas fa-receipt me-2"></i>Booking Summary
+                        </h5>
+                        <div id="summaryRoomTypes"></div>
+                        <div><span class="summary-value" id="summaryDates"></span></div>
+                        <div><span class="summary-value" id="summaryPrice"></span></div>
+                        <div><span class="summary-value text-danger" id="summaryDownPayment"></span></div>
                     </div>
                 </div>
-                <hr class="my-4" style="border-color:var(--hell-accent, #ff6b6b);opacity:.4;">
-                <div class="step-actions mt-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-light px-4" id="backToStep2Btn">
+
+                <!-- Payment Method Selection -->
+                <div class="mb-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-lg-6">
+                            <label class="form-label">
+                                <i class="fas fa-credit-card me-2"></i>Payment Method <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="paymentMethod" required>
+                                <option value="">Select Payment Category</option>
+                            </select>
+                            <div id="chosenPaymentMethodInfo"></div>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">
+                                <i class="fas fa-peso-sign me-2"></i>Amount to Pay (50% Downpayment)
+                            </label>
+                            <input type="text" class="form-control" id="amountToPay" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Payment Details Container -->
+                    <div id="paymentDetailsContainer" class="mt-3"></div>
+
+                    <!-- Reference Number Container -->
+                    <div id="referenceNumberContainer" class="mt-3 d-none">
+                        <div class="form-group">
+                            <label for="referenceNumber" class="form-label required">
+                                <i class="fas fa-hashtag me-2"></i>Reference Number
+                            </label>
+                            <input type="text" class="form-control" id="referenceNumber"
+                                placeholder="Enter reference/transaction number">
+                            <div class="form-hint mt-2">Found in your receipt or transaction confirmation</div>
+                        </div>
+                    </div>
+
+                    <!-- Proof of Payment Container -->
+                    <div id="proofOfPaymentContainer" class="mt-3 d-none">
+                        <div class="form-group">
+                            <label for="proofOfPayment" class="form-label required">
+                                <i class="fas fa-image me-2"></i>Proof of Payment
+                            </label>
+                            <input type="file" class="form-control" id="proofOfPayment" accept="image/*">
+                            <div class="form-hint mt-2">Upload a screenshot or photo of your payment receipt</div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-5" style="border-color: var(--primary-color); opacity: 0.3;">
+                <div class="step-actions mt-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-light px-5" id="backToStep2Btn">
                         <i class="fas fa-arrow-left me-2"></i>Back
                     </button>
-                    <button type="submit" class="btn btn-hell px-4" id="submitBookingBtn">
+                    <button type="submit" class="btn btn-hell px-5" id="submitBookingBtn">
                         <i class="fas fa-check me-2"></i>Confirm Booking
                     </button>
                 </div>

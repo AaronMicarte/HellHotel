@@ -1,7 +1,15 @@
 /* Booking Form Step Visibility & Consistency */
+:root {
+    --hell-dark: #0d0d0d;
+    --hell-red: #cc0000;
+    --hell-orange: #ff4444;
+    --hell-gray: #1a1a1a;
+    --hell-light: #f5f5f5;
+    --hell-accent: #ff6b6b;
+}
+
 .form-step {
     display: none;
-    animation: fadeIn 0.3s;
 }
 
 .form-step.active,
@@ -9,48 +17,44 @@
     display: block;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Field Spacing and Label Consistency */
+/* Simple Form Styling */
 .form-step .form-label {
-    font-weight: 500;
-    color: #2C3E50;
-    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.5rem;
 }
 
 .form-step .form-control,
 .form-step .form-select {
     margin-bottom: 1rem;
     border-radius: 8px;
-    border: 1.5px solid #e9ecef;
-    background: #fff;
-    transition: border-color 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    color: #222;
 }
 
 .form-step .form-control:focus,
 .form-step .form-select:focus {
-    border-color: #FF3366;
-    box-shadow: 0 0 0 0.1rem rgba(255, 51, 102, 0.08);
+    border-color: #d20707;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: none;
+}
+
+.form-step .form-control:focus,
+.form-step .form-select:focus {
+    border-color: var(--hell-accent);
+    background: rgba(35, 35, 35, 0.95);
+    color: var(--hell-light);
 }
 
 .form-step .is-invalid {
     border-color: #dc3545 !important;
-    background: #fff0f3;
+    background: #350000;
 }
 
 .form-step .form-label.required::after {
     content: ' *';
-    color: #FF3366;
+    color: var(--hell-red);
 }
 
 /* Step Navigation Buttons */
@@ -58,33 +62,606 @@
     min-width: 120px;
     font-weight: 600;
     letter-spacing: 0.02em;
+    border-radius: 15px;
+}
+
+.btn-primary {
+    background: #d20707 !important;
+    border: none !important;
+    color: #fff !important;
+}
+
+.btn-outline-light {
+    background: rgba(26, 26, 26, 0.7) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Progress Bar Consistency */
 .booking-progress .progress-bar {
-    background-color: #FF3366 !important;
-    transition: width 0.3s;
+    background-color: var(--hell-red) !important;
 }
 
 /* Step Labels */
 .step-label {
-    color: #6C757D;
+    color: #fff;
     font-weight: 500;
-    transition: color 0.2s;
 }
 
 .step-label.active {
-    color: #FF3366;
+    color: var(--hell-red);
     font-weight: 700;
+}
+
+/* Simple Summary Box Styling in Payment Form */
+.summary-box {
+    background: rgba(26, 26, 26, 0.8);
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    margin-bottom: 1.5rem;
+}
+
+.summary-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    color: #d20707;
+    font-family: inherit;
+}
+
+.summary-value {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+#summaryDownPayment {
+    color: var(--primary-color, #d20707) !important;
+    font-weight: 800 !important;
+    font-size: 1.2rem !important;
+    font-family: var(--font-primary, 'Inter');
+}
+
+/* Payment Method Styling - Minimal Design */
+/* Simple Payment Method Buttons */
+.payment-method-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+.payment-method-buttons .payment-sub-method-btn {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    background: rgba(26, 26, 26, 0.8);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: inherit;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.payment-method-buttons .payment-sub-method-btn.btn-primary {
+    background: rgba(210, 7, 7, 0.8) !important;
+    border-color: #d20707 !important;
+    color: white !important;
+}
+
+/* Simple Payment Instruction Cards - Full Width */
+.payment-instruction-card {
+    background: rgba(26, 26, 26, 0.8);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.payment-instruction-card-header {
+    background: rgba(210, 7, 7, 0.8);
+    color: #fff;
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 1.1rem;
+}
+
+.payment-instruction-card-body {
+    padding: 1.5rem;
+    color: #fff;
+}
+
+/* Simple QR Code Styling */
+.payment-qr {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    max-width: 200px !important;
+    margin: 0 auto;
+    border-radius: 8px;
+}
+
+.qr-code-container {
+    padding: 1rem !important;
+    border-radius: 8px !important;
+}
+
+/* Simple Bank Details */
+.bank-details {
+    font-size: 0.9rem;
+    background: rgba(26, 26, 26, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+    color: #fff !important;
+}
+
+.bank-details .fw-bold {
+    color: #d20707 !important;
+    font-family: inherit;
+}
+
+.bank-details p.fw-bold {
+    color: #fff !important;
+    border-bottom: 2px solid rgba(210, 7, 7, 0.3);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+/* Enhanced Payment Steps */
+.payment-steps {
+    font-size: 1rem;
+    line-height: 1.8;
+    background: linear-gradient(145deg, rgba(5, 5, 5, 0.98), rgba(26, 26, 26, 0.95));
+    border-radius: 16px;
+    padding: 2rem;
+    color: #fff;
+    border: 2px solid rgba(210, 7, 7, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.payment-steps p.fw-bold {
+    border-bottom: 2px solid rgba(210, 7, 7, 0.3);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    font-family: var(--font-primary, 'Inter');
+}
+
+.payment-steps ol {
+    margin-bottom: 0;
+    padding-left: 2rem;
+}
+
+.payment-steps ol li {
+    margin-bottom: 1rem;
+    padding-left: 0.5rem;
+}
+
+.payment-steps .fw-bold {
+    color: var(--primary-color, #d20707);
+    font-family: var(--font-primary, 'Inter');
+}
+
+/* Simple Credit Card Form */
+.credit-card-form {
+    background: rgba(26, 26, 26, 0.8) !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.credit-card-form .form-control {
+    height: 40px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #222;
+    border-radius: 8px;
+    font-weight: 400;
+}
+
+.credit-card-form .form-control:focus {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: #d20707;
+    box-shadow: none;
+    color: #111;
+}
+
+.credit-card-form .form-label {
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+/* Simple Reference Number and Proof of Payment Containers */
+#referenceNumberContainer,
+#proofOfPaymentContainer {
+    background: rgba(26, 26, 26, 0.8);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+}
+
+#referenceNumberContainer .form-label,
+#proofOfPaymentContainer .form-label {
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--primary-color, #d20707);
+    font-family: var(--font-primary, 'Inter');
+    font-size: 1.1rem;
+}
+
+#referenceNumberContainer .form-control,
+#proofOfPaymentContainer .form-control {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(210, 7, 7, 0.2);
+    color: #222;
+    height: 55px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#referenceNumberContainer .form-control:focus,
+#proofOfPaymentContainer .form-control:focus {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: var(--primary-color, #d20707);
+    box-shadow: 0 0 0 0.2rem rgba(210, 7, 7, 0.15);
+    color: #111;
+}
+
+#referenceNumberContainer .text-muted,
+#proofOfPaymentContainer .text-muted {
+    opacity: 0.9;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-style: italic;
+    margin-top: 0.5rem;
+}
+
+/* Booking Confirmation Styling */
+.booking-confirmation {
+    text-align: left;
+    color: #fff;
+}
+
+.booking-confirmation p {
+    margin-bottom: 10px;
+}
+
+.confirmation-details {
+    background: rgba(26, 26, 26, 0.95);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    border-left: 4px solid var(--hell-accent);
+    color: #fff;
+}
+
+.confirmation-details p {
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.confirmation-details strong {
+    font-weight: 600;
+    color: var(--hell-accent);
+}
+
+.swal2-html-container {
+    text-align: left !important;
+    color: #fff;
+}
+
+.swal2-popup {
+    background: #0d0d0d !important;
+    color: #fff !important;
+    border: 1px solid var(--hell-accent);
+}
+
+.swal2-title {
+    color: #fff !important;
+}
+
+.swal2-confirm {
+    background: linear-gradient(135deg, var(--hell-red), var(--hell-orange)) !important;
+    border: none !important;
 }
 
 /* Card Consistency */
 .booking-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.06);
-    border: 1.5px solid #f3f3f3;
+    border-radius: 20px;
     padding: 2rem;
+    color: var(--hell-light);
+}
+
+/* Simple Room Type Cards */
+.room-type-card {
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    color: #fff;
+    background: rgba(26, 26, 26, 0.8);
+}
+
+.room-type-card.compact-card {
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+.room-type-card.selected-room {
+    border-color: #d20707;
+}
+
+.room-type-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #d20707;
+    font-family: inherit;
+}
+
+.room-type-card .price {
+    color: #d20707;
+    font-size: 1.4rem;
+    font-weight: 800;
+    font-family: var(--font-primary, 'Inter');
+}
+
+.room-type-card .quantity-control {
+    margin-top: auto;
+}
+
+.room-type-card .quantity-control input {
+    border: 2px solid rgba(210, 7, 7, 0.2);
+    color: #222;
+    border-radius: 12px;
+    text-align: center;
+    padding: 0.5rem 0;
+    font-weight: 700;
+    width: 70px;
+    height: 45px;
+    font-size: 1.1rem;
+}
+
+.room-type-card .quantity-control input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(210, 7, 7, 0.15);
+}
+
+/* Enhanced Companion Container Styling */
+.companion-container {
+    border-radius: 20px;
+    color: #fff;
+    margin-bottom: 2rem;
+    background: linear-gradient(145deg, rgba(5, 5, 5, 0.95), rgba(26, 26, 26, 0.9));
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    padding: 2rem;
+}
+
+.companion-header {
+    color: var(--primary-color, #d20707);
+    font-weight: 800;
+    font-family: var(--font-primary, 'Inter');
+    font-size: 1.3rem;
+    border-bottom: 2px solid rgba(210, 7, 7, 0.3);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.companion-count-select {
+    min-width: 70px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--hell-accent);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.companion-count-select:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--hell-accent);
+}
+
+.companion-name-input {
+    height: 38px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 8px;
+}
+
+.companion-name-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
+    border-color: var(--hell-accent);
+}
+
+.input-group-sm .input-group-text {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.75rem;
+    color: #fff;
+    border: none;
+    border-radius: 8px 0 0 8px;
+}
+
+/* Enhanced Companion Cards using style.css color palette */
+#roomCompanionsArea .card {
+    margin-bottom: 1.5rem !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(210, 7, 7, 0.03)) !important;
+    border: 2px solid rgba(210, 7, 7, 0.2) !important;
+    border-radius: 16px !important;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+#roomCompanionsArea .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color, #d20707) !important;
+}
+
+#roomCompanionsArea .card-header {
+    padding: 1.25rem 1.5rem !important;
+    background: linear-gradient(135deg, var(--primary-color, #d20707), rgba(210, 7, 7, 0.8)) !important;
+    color: #fff !important;
+    border: none;
+    font-weight: 700;
+    font-family: var(--font-primary, 'Inter');
+}
+
+#roomCompanionsArea .card-body {
+    padding: 1.5rem !important;
+}
+
+/* Enhanced Companion Input Styling */
+.companion-name-input {
+    height: 50px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(210, 7, 7, 0.2) !important;
+    color: #222 !important;
+    font-weight: 500;
+}
+
+.companion-name-input:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: var(--primary-color, #d20707) !important;
+    box-shadow: 0 0 0 0.2rem rgba(210, 7, 7, 0.15) !important;
+    color: #111 !important;
+}
+
+.companion-count-select {
+    min-width: 80px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(210, 7, 7, 0.2) !important;
+    color: #222 !important;
+    border-radius: 12px !important;
+    font-weight: 600;
+    height: 42px;
+}
+
+.companion-count-select:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: var(--primary-color, #d20707) !important;
+    box-shadow: 0 0 0 0.2rem rgba(210, 7, 7, 0.15);
+}
+
+/* Enhanced Room Card Styling in Companions */
+.enhanced-room-card {
+    border-radius: 16px !important;
+    border: 2px solid rgba(210, 7, 7, 0.2) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(210, 7, 7, 0.03)) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15) !important;
+    overflow: hidden;
+}
+
+.enhanced-room-card .card-header {
+    background: linear-gradient(135deg, var(--primary-color, #d20707), rgba(210, 7, 7, 0.8)) !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.room-info-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.room-type-name {
+    font-family: var(--font-primary, 'Inter');
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.room-number-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.main-guest-badge {
+    background: linear-gradient(135deg, #ffd700, #ffed4e) !important;
+    color: #000 !important;
+    font-weight: 700;
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+
+.companion-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.companion-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Enhanced Main Guest Input Styling */
+.main-guest-container {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 237, 78, 0.05));
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid rgba(255, 215, 0, 0.2);
+    margin-bottom: 1rem;
+}
+
+.main-guest-label {
+    color: #ffd700 !important;
+    font-family: var(--font-primary, 'Inter');
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.main-guest-input {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(255, 215, 0, 0.3) !important;
+    color: #333 !important;
+    font-weight: 600;
+    border-radius: 10px;
+    height: 50px;
+}
+
+/* Enhanced Companion Input Group */
+.companion-input-group {
+    margin-bottom: 1rem;
+}
+
+.companion-input-group .input-group-text.companion-number {
+    background: linear-gradient(135deg, rgba(210, 7, 7, 0.8), rgba(210, 7, 7, 0.6));
+    color: #fff;
+    border: 2px solid rgba(210, 7, 7, 0.2);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px 0 0 12px;
 }
 
 @media (max-width: 991px) {
@@ -99,41 +676,72 @@
 }
 
 .card-header.bg-primary {
-    background: linear-gradient(135deg, #FF3366, #FF6B8B) !important;
+    background: #d20707 !important;
     color: #fff !important;
-    border-radius: 16px 16px 0 0;
+    border-radius: 8px 8px 0 0;
 }
 
 .card-header.bg-light {
-    background: #f8f9fa !important;
-    border-radius: 16px 16px 0 0;
+    background: #050505 !important;
+    color: #fff !important;
+    border-radius: 8px 8px 0 0;
 }
 
 .card {
-    border-radius: 16px;
-    border: 1.5px solid #e9ecef;
-    box-shadow: 0 2px 12px rgba(44, 62, 80, 0.05);
+    border-radius: 8px;
+    border: 1px solid #d20707;
+    background-color: #050505;
+    color: #fff;
 }
 
 /* Summary Section */
 #bookingSummaryContent {
     font-size: 1rem;
+    color: #fff;
 }
 
 #bookingSummaryContent .room-summary h6 {
     font-size: 1.1rem;
     font-weight: 600;
+    color: #fff;
 }
 
 #bookingSummaryContent .room-details,
 #bookingSummaryContent .pricing-summary {
     font-size: 0.97rem;
+    color: #fff;
 }
 
 #bookingSummaryContent .alert-info {
     font-size: 0.95rem;
     border-radius: 10px;
     margin-top: 1rem;
+    background-color: #d20707;
+    border-color: #d20707;
+    color: #fff;
+}
+
+/* Improved room badge styling */
+.badge.bg-light {
+    background-color: #333 !important;
+    color: #fff !important;
+    border: 1px solid #555;
+}
+
+.badge.bg-warning {
+    background-color: #d20707 !important;
+    color: #fff !important;
+}
+
+/* Individual room styles in summary */
+.border-start.border-2 {
+    border-left-color: #d20707 !important;
+}
+
+/* Improved companion input styling */
+.companion-name-input:focus {
+    box-shadow: 0 0 0 0.15rem rgba(210, 7, 7, 0.25) !important;
+    border-color: #d20707 !important;
 }
 
 /* Responsive Adjustments */
@@ -154,5 +762,33 @@
     .d-flex.gap-2.mt-4 .btn {
         width: 100%;
         margin-bottom: 8px;
+    }
+}
+
+/* Container Width Controls */
+.payment-section-container {
+    background: rgba(26, 26, 26, 0.8);
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 100%;
+}
+
+.payment-details-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Responsive Container Adjustments */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1000px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .payment-section-container {
+        padding: 1rem;
+        margin: 0.5rem 0;
     }
 }
