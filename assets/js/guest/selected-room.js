@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     <div class="room-hero-content d-flex flex-column flex-grow-1 p-5" style="background:rgba(26,26,26,0.97); border-radius:0 32px 32px 0;">
                         <h1 class="mb-3" style="color:#ff6b6b;font-weight:800;font-size:2.8rem;letter-spacing:1px;">${type.type_name}</h1>
                         <div class="badge-container mb-3" style="font-size:1.1rem;">
-                            <span class="custom-badge badge-info">${type.room_size_sqm ? type.room_size_sqm + ' sqm' : 'Spacious'}</span>
+                            <span class="custom-badge badge-dark">${type.room_size_sqm ? type.room_size_sqm + ' sqm' : 'Spacious'}</span>
                             <span class="custom-badge badge-dark">${type.max_capacity || '2'} guests</span>
                         </div>
                         <p class="room-description mb-4" style="font-size:1.2rem;">${desc}</p>
@@ -60,44 +60,40 @@ document.addEventListener('DOMContentLoaded', async function () {
                 </section>
                 `;
 
-        // Additional images for this room type (from all rooms of this type)
+        // Gallery: Fetch all images for this room type (unique per type)
         try {
-            const res = await axios.get('/Hotel-Reservation-Billing-System/api/admin/rooms/rooms.php', {
-                params: { type: type.type_name }
+            const imgRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/rooms/room-images.php', {
+                params: { room_type_id: type.room_type_id }
             });
-            const rooms = Array.isArray(res.data) ? res.data : [];
-            let allImages = [];
-            for (const room of rooms) {
-                // Fetch images for each room
+            const imgs = Array.isArray(imgRes.data) ? imgRes.data : [];
+            const fallbackImg = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop';
+            // Check if image exists by attempting to fetch it (HEAD request)
+            const checkImageExists = async (url) => {
                 try {
-                    const imgRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/rooms/room-images.php', {
-                        params: { room_id: room.room_id }
-                    });
-                    const imgs = Array.isArray(imgRes.data) ? imgRes.data : [];
-                    allImages = allImages.concat(imgs.map(i => ({
-                        url: `/Hotel-Reservation-Billing-System/assets/images/uploads/room-images/${i.image_url}`,
-                        roomNum: room.room_number
-                    })));
-                } catch { }
-            }
-            // Deduplicate images by URL
-            const images = [];
-            const seenUrls = new Set();
-            for (const img of allImages) {
-                if (!seenUrls.has(img.url)) {
-                    images.push(img);
-                    seenUrls.add(img.url);
+                    const res = await fetch(url, { method: 'HEAD' });
+                    return res.ok;
+                } catch {
+                    return false;
+                }
+            };
+            // Build list of valid images
+            const validImages = [];
+            for (const i of imgs) {
+                const url = `/Hotel-Reservation-Billing-System/assets/images/uploads/room-images/${i.image_url}`;
+                // eslint-disable-next-line no-await-in-loop
+                if (await checkImageExists(url)) {
+                    validImages.push(url);
                 }
             }
-            if (images.length) {
+            if (validImages.length) {
                 imagesContainer.innerHTML = `
                     <div class="gallery-section mb-5">
                         <h3 class="mb-4" style="color:#ff6b6b;font-weight:700;letter-spacing:1px;">Gallery</h3>
                         <div class="row g-4 gallery-images-bootstrap">
-                            ${images.map(img => `
+                            ${validImages.map(url => `
                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                                     <div class="gallery-image-box h-100 p-2 bg-dark bg-opacity-75 rounded-4 shadow-sm position-relative overflow-hidden" style="transition:box-shadow .2s;">
-                                        <img src="${img.url}" alt="Room Image" class="img-fluid rounded-3 shadow gallery-img-hover" style="width:100%;height:100%;object-fit:cover;transition:transform .30s;">
+                                        <img src="${url}" alt="Room Image" class="img-fluid rounded-3 shadow gallery-img-hover" style="width:100%;height:100%;object-fit:cover;transition:transform .30s;" onerror="this.onerror=null;this.src='${fallbackImg}';">
                                     </div>
                                 </div>
                             `).join('')}

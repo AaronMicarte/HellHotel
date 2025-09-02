@@ -119,7 +119,7 @@ function renderRoomTypes(roomTypes) {
                 <div class="room-hero-content d-flex flex-column flex-grow-1 p-4" style="background:rgba(26,26,26,0.93); border-radius:0 20px 20px 0;">
                     <h3 class="mb-2" style="color:var(--hell-red);font-weight:700;">${type.type_name}</h3>
                     <div class="badge-container mb-2">
-                        <span class="custom-badge badge-info">${type.room_size_sqm ? type.room_size_sqm + ' sqm' : 'Spacious'}</span>
+                        <span class="custom-badge badge-dark">${type.room_size_sqm ? type.room_size_sqm + ' sqm' : 'Spacious'}</span>
                         <span class="custom-badge badge-dark">${type.max_capacity || '2'} guests</span>
                     </div>
                     <p class="room-description mb-3">${desc}</p>

@@ -28,8 +28,9 @@ async function loadIdTypes() {
         const { data } = await axios.get('/Hotel-Reservation-Billing-System/api/admin/guests/id_types.php');
         const select = document.getElementById('idType');
         if (!select) return;
+        const sorted = Array.isArray(data) ? [...data].sort((a, b) => (a.id_type || '').localeCompare(b.id_type || '')) : [];
         select.innerHTML = '<option value="">Select ID Type</option>' +
-            (Array.isArray(data) ? data : []).map(t =>
+            sorted.map(t =>
                 `<option value="${t.id_type}">${t.id_type}</option>`
             ).join('');
     } catch { }
@@ -216,25 +217,11 @@ document.getElementById('toStep2Btn').onclick = async function () {
             id_number: document.getElementById('idNumber').value.trim(),
             id_picture: document.getElementById('idPicture').files[0] || null
         };
-        // Test API connection for guest info (optional, for debugging)
-        // const testFormData = new FormData();
-        // Object.entries(window.bookingGuestInfo).forEach(([k, v]) => {
-        //     if (k === 'id_picture' && v) testFormData.append('id_picture', v);
-        //     else testFormData.append(k, v);
-        // });
-        // testFormData.append('operation', 'insertGuest');
-        // let testRes = await axios.post('/Hotel-Reservation-Billing-System/api/admin/guests/guests.php', testFormData, {
-        //     headers: { 'Content-Type': 'multipart/form-data' }
-        // });
-        // if (!testRes.data || !testRes.data.guest_id) throw new Error('Guest API error: ' + JSON.stringify(testRes.data));
         showStep(1);
     } catch (err) {
         showToast('Failed to save guest info: ' + (err?.message || ''), 'error');
     }
 };
-
-// --- Companion Input for Multiple Guests ---
-// Show companion inputs immediately if guests > 1, and update on change
 function updateCompanionInputs() {
     const guestsInput = document.getElementById('guests');
     const containerId = 'companionsContainer';

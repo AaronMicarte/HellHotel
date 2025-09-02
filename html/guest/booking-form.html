@@ -114,9 +114,9 @@
         .booking-card {
             background: rgba(26, 26, 26, 0.98);
             border-radius: 32px;
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25), 0 1.5px 8px rgba(255, 107, 107, 0.10);
+            /* box-shadow removed */
             padding: 3.5rem 2.5rem 2.5rem 2.5rem;
-            max-width: 820px;
+            max-width: 1200px;
             margin: 0 auto 2.5rem auto;
             min-height: 650px;
         }
@@ -157,6 +157,13 @@
         .form-label {
             color: var(--hell-orange);
             font-weight: 700;
+        }
+
+        .form-hint,
+        small.text-muted {
+            color: #f5f5f5 !important;
+            font-size: 0.98em;
+            opacity: 0.85;
         }
 
         .form-control,
@@ -295,65 +302,65 @@
             Thank you for booking with HellHotel.<br>
             Check your email for confirmation.
         </div>
-        <div class="booking-card shadow-lg">
+        <div class="booking-card">
             <!-- Step 1: Guest Info -->
             <form id="guestInfoForm" class="step-form">
-                <div class="guest-section mb-4">
-                    <h3 class="mb-4 text-center">Guest Information</h3>
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">First Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="firstName" autocomplete="given-name"
-                                    required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Middle Name</label>
-                                <input type="text" class="form-control" id="middleName" autocomplete="additional-name">
-                            </div>
-                            <div class="mb-3 dob-group">
-                                <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="dateOfBirth" required autocomplete="off">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="phoneNumber" autocomplete="tel"
-                                    placeholder="+63" required>
-                            </div>
+                <h3 class="mb-4 text-center">Guest Information</h3>
+                <p class="text-center mb-4">Please enter your details as they appear on your valid ID. All
+                    fields marked with <span class="text-danger">*</span> are required.</p>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="firstName" autocomplete="given-name" required>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Last Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="lastName" autocomplete="family-name"
-                                    required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Suffix</label>
-                                <input type="text" class="form-control" id="suffix">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="email" autocomplete="email" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">ID Type <span class="text-danger">*</span></label>
-                                <select class="form-select" id="idType" required>
-                                    <option value="">Select ID Type</option>
-                                </select>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label">Middle Name</label>
+                            <input type="text" class="form-control" id="middleName" autocomplete="additional-name">
+                        </div>
+                        <div class="mb-3 dob-group">
+                            <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="dateOfBirth" required autocomplete="off">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="phoneNumber" autocomplete="tel" placeholder="+63"
+                                required>
                         </div>
                     </div>
-                    <div class="row g-4 mt-2">
-                        <div class="col-md-6">
-                            <label class="form-label">ID Number <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="idNumber" required>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="lastName" autocomplete="family-name" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">ID Picture <span class="text-danger">*</span></label>
-                            <input type="file" class="form-control" id="idPicture" accept="image/*" required>
-                            <img id="idPicPreview" src="" alt="ID Preview"
-                                style="display:none;max-width:100%;max-height:120px;margin-top:8px;border-radius:6px;border:1px solid #ccc;">
+                        <div class="mb-3">
+                            <label class="form-label">Suffix</label>
+                            <input type="text" class="form-control" id="suffix">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" autocomplete="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ID Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="idType" required>
+                                <option value="">Select ID Type</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label">ID Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="idNumber" required>
+                        <small class="text-muted">Enter the number exactly as shown on your selected ID.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">ID Picture <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="idPicture" accept="image/*" required>
+                        <img id="idPicPreview" src="" alt="ID Preview"
+                            style="display:none;max-width:100%;max-height:120px;margin-top:8px;border-radius:6px;border:1px solid #ccc;">
+                        <small class="text-muted">Upload a clear photo of your ID.</small>
                     </div>
                 </div>
                 <hr class="my-4" style="border-color:var(--hell-accent, #ff6b6b);opacity:.4;">
