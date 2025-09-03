@@ -42,6 +42,23 @@ class PaymentAPI
         // Debug: Log incoming payload
         file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " insertPayment payload: " . json_encode($json) . "\n", FILE_APPEND);
 
+        // Check reservation status first - only allow payments for confirmed reservations
+        $sqlStatus = "SELECT rs.reservation_status 
+                     FROM Reservation r 
+                     LEFT JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id 
+                     WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
+        $stmtStatus = $db->prepare($sqlStatus);
+        $stmtStatus->bindParam(":reservation_id", $json['reservation_id']);
+        $stmtStatus->execute();
+        $statusRow = $stmtStatus->fetch(PDO::FETCH_ASSOC);
+
+        if (!$statusRow || $statusRow['reservation_status'] === 'pending') {
+            $error = "Cannot accept payments for pending reservations. Please confirm the reservation first.";
+            file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " ERROR: $error\n", FILE_APPEND);
+            echo json_encode(['success' => false, 'error' => $error]);
+            return;
+        }
+
         // Validate required fields
         $required = ['user_id', 'billing_id', 'reservation_id', 'sub_method_id', 'amount_paid', 'payment_date'];
         foreach ($required as $field) {

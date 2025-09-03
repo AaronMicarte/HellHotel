@@ -47,8 +47,19 @@ try {
     $activeReservations = $reservationsStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
     // ### REVENUE STATISTICS ###
-    // Get total revenue from completed payments
-    $revenueStmt = $conn->prepare("SELECT COALESCE(SUM(amount_paid), 0) as total FROM Payment WHERE is_deleted = 0");
+    // Get total revenue from completed payments - only count if reservation is not pending
+    $revenueStmt = $conn->prepare("
+        SELECT COALESCE(SUM(
+            CASE 
+                WHEN rs.reservation_status = 'pending' THEN 0 
+                ELSE p.amount_paid 
+            END), 0) as total 
+        FROM Payment p
+        LEFT JOIN Billing b ON p.billing_id = b.billing_id
+        LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
+        LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
+        WHERE p.is_deleted = 0
+    ");
     $revenueStmt->execute();
     $totalRevenue = $revenueStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
@@ -93,24 +104,40 @@ try {
         'reservations' => $recentReservations
     ];
 
-    // --- Revenue per day (last 14 days) ---
+    // --- Revenue per day (last 14 days) - only count confirmed+ reservations ---
     $stmt = $conn->prepare("
-        SELECT DATE(payment_date) as day, SUM(amount_paid) as revenue
-        FROM Payment
-        WHERE is_deleted = 0
+        SELECT DATE(p.payment_date) as day, 
+               SUM(CASE 
+                   WHEN rs.reservation_status = 'pending' THEN 0 
+                   ELSE p.amount_paid 
+               END) as revenue
+        FROM Payment p
+        LEFT JOIN Billing b ON p.billing_id = b.billing_id
+        LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
+        LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
+        WHERE p.is_deleted = 0
         GROUP BY day
+        HAVING revenue > 0
         ORDER BY day DESC
         LIMIT 14
     ");
     $stmt->execute();
     $revenuePerDay = array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC)); // oldest first
 
-    // --- Revenue per month (last 12 months) ---
+    // --- Revenue per month (last 12 months) - only count confirmed+ reservations ---
     $stmt = $conn->prepare("
-        SELECT DATE_FORMAT(payment_date, '%Y-%m') as month, SUM(amount_paid) as revenue
-        FROM Payment
-        WHERE is_deleted = 0
+        SELECT DATE_FORMAT(p.payment_date, '%Y-%m') as month, 
+               SUM(CASE 
+                   WHEN rs.reservation_status = 'pending' THEN 0 
+                   ELSE p.amount_paid 
+               END) as revenue
+        FROM Payment p
+        LEFT JOIN Billing b ON p.billing_id = b.billing_id
+        LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
+        LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
+        WHERE p.is_deleted = 0
         GROUP BY month
+        HAVING revenue > 0
         ORDER BY month DESC
         LIMIT 12
     ");

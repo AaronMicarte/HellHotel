@@ -116,6 +116,15 @@ export const showBillingDetailsModal = async (billingId) => {
         else if (billingStatus.toLowerCase() === 'unpaid' || billingStatus.toLowerCase() === 'overdue') statusColor = '#dc3545'; // red
         else if (billingStatus.toLowerCase() === 'partial') statusColor = '#fd7e14'; // orange
 
+        // Determine color for reservation status
+        let reservationStatusColor = '#6c757d'; // default gray
+        const reservationStatus = billing.reservation_status || '';
+        if (reservationStatus.toLowerCase() === 'confirmed') reservationStatusColor = '#198754'; // green
+        else if (reservationStatus.toLowerCase() === 'pending') reservationStatusColor = '#ffc107'; // yellow
+        else if (reservationStatus.toLowerCase() === 'checked-in') reservationStatusColor = '#0dcaf0'; // cyan
+        else if (reservationStatus.toLowerCase() === 'checked-out') reservationStatusColor = '#6f42c1'; // purple
+        else if (reservationStatus.toLowerCase() === 'cancelled') reservationStatusColor = '#dc3545'; // red
+
         // Make modal larger (add class to modal dialog)
         const modalDialog = document.querySelector('#billingDetailsModal .modal-dialog');
         if (modalDialog) {
@@ -139,7 +148,8 @@ export const showBillingDetailsModal = async (billingId) => {
                 <tr><td class="details-label"><i class="fas fa-user details-icon"></i>Guest</td><td>${billing.guest_name || ''}</td></tr>
                 <tr><td class="details-label"><i class="fas fa-calendar-check details-icon"></i>Reservation</td><td>${billing.reservation_id || ''}</td></tr>
                 <tr><td class="details-label"><i class="fas fa-calendar-day details-icon"></i>Date</td><td>${formatDate(billing.billing_date) || ''}</td></tr>
-                <tr><td class="details-label"><i class="fas fa-info-circle details-icon"></i>Status</td><td style="font-weight:bold;text-transform:uppercase;color:${statusColor}"><i style="font-size:0.8em;color:${statusColor};margin-right:6px;"></i>${billingStatus}</td></tr>
+                <tr><td class="details-label"><i class="fas fa-info-circle details-icon"></i>Billing Status</td><td style="font-weight:bold;text-transform:uppercase;color:${statusColor}"><i style="font-size:0.8em;color:${statusColor};margin-right:6px;"></i>${billingStatus}</td></tr>
+                <tr><td class="details-label"><i class="fas fa-bookmark details-icon"></i>Reservation Status</td><td style="font-weight:bold;text-transform:uppercase;color:${reservationStatusColor}"><i style="font-size:0.8em;color:${reservationStatusColor};margin-right:6px;"></i>${reservationStatus}</td></tr>
             </table>
             <div class="details-section-title"><i class="fas fa-door-open details-icon"></i>Reserved Rooms</div>
             ${roomsHtml}
@@ -167,12 +177,21 @@ export const showBillingDetailsModal = async (billingId) => {
             (billing.payments || []).forEach(p => {
                 const referenceDisplay = p.reference_number ?
                     `<br><small class="text-muted"><i class="fas fa-receipt me-1"></i>Ref: ${p.reference_number}</small>` : '';
+
+                // Show status note for pending payments
+                const statusNote = p.status_note ?
+                    `<br><small class="text-warning"><i class="fas fa-hourglass-half me-1"></i>${p.status_note}</small>` : '';
+
+                // Show original amount for pending payments
+                const displayAmount = p.amount_paid_display ? p.amount_paid_display : p.amount_paid;
+                const amountClass = p.status_note ? 'text-muted' : '';
+
                 paymentHistoryBody.innerHTML += `
                     <tr>
                         <td>${formatDate(p.payment_date)}</td>
-                        <td>₱${p.amount_paid}</td>
+                        <td class="${amountClass}">₱${parseFloat(displayAmount).toFixed(2)}</td>
                         <td>${p.method_name || '-'}${referenceDisplay}</td>
-                        <td>${p.notes || ''}</td>
+                        <td>${p.notes || ''}${statusNote}</td>
                     </tr>
                 `;
             });
@@ -357,10 +376,59 @@ const populatePaymentMethodSelect = async () => {
     }
 };
 
+// --- Helper: Check Reservation Status ---
+export const checkReservationStatus = async (reservationId) => {
+    const response = await axios.get(`${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/billing/billing.php`, {
+        params: {
+            operation: 'checkReservationStatus',
+            json: JSON.stringify({ reservation_id: reservationId })
+        }
+    });
+    return response.data;
+};
+
 // --- Show Payment Modal (Add/Edit Payment) ---
 export const showPaymentModal = async (billingId = null, reservationId = null) => {
     try {
         console.debug("[BillingModule] showPaymentModal called with billingId:", billingId, "reservationId:", reservationId);
+
+        let resolvedReservationId = reservationId;
+        // If billingId is given but reservationId is not, fetch the billing to get reservation_id
+        if (billingId && !reservationId) {
+            const billing = await getBillingDetails(billingId);
+            resolvedReservationId = billing.reservation_id;
+        }
+
+        // Check reservation status before allowing payment
+        if (resolvedReservationId) {
+            const statusCheck = await checkReservationStatus(resolvedReservationId);
+            console.debug("[BillingModule] Reservation status check:", statusCheck);
+
+            if (statusCheck.error) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: statusCheck.error,
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+                return;
+            }
+
+            if (!statusCheck.can_pay) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'warning',
+                    title: `Cannot accept payments for ${statusCheck.reservation_status} reservations. Please confirm the reservation first.`,
+                    showConfirmButton: false,
+                    timer: 3500
+                });
+                return;
+            }
+        }
+
         // Reset form
         document.getElementById("paymentForm").reset();
         document.getElementById("billingId").value = billingId || "";
@@ -421,13 +489,6 @@ export const showPaymentModal = async (billingId = null, reservationId = null) =
                     }
                 }
             });
-        }
-
-        let resolvedReservationId = reservationId;
-        // If billingId is given but reservationId is not, fetch the billing to get reservation_id
-        if (billingId && !reservationId) {
-            const billing = await getBillingDetails(billingId);
-            resolvedReservationId = billing.reservation_id;
         }
 
         // Load reservations for dropdown and select the correct one
@@ -631,27 +692,25 @@ export const recordPayment = async () => {
         );
         console.debug("[BillingModule] Payment API response:", response.data);
 
-        // DEBUG: If API error, log full response
+        // Handle API error responses including reservation status errors
         if (!response.data || !(response.data === 1 || response.data.success)) {
+            let errorMessage = 'Failed to record payment (API error)';
+            let timer = 1800;
+
+            if (response.data && typeof response.data === "object" && response.data.error) {
+                errorMessage = response.data.error;
+                timer = 3500; // Longer timer for detailed error messages
+            }
+
             Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: 'error',
-                title: 'Failed to record payment (API error)',
+                title: errorMessage,
                 showConfirmButton: false,
-                timer: 1800
+                timer: timer
             });
             console.error("[BillingModule] Payment error:", response.data);
-            if (response.data && typeof response.data === "object" && response.data.error) {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'error',
-                    title: 'Payment error: ' + response.data.error,
-                    showConfirmButton: false,
-                    timer: 3000
-                });
-            }
             return false;
         }
 
@@ -678,26 +737,28 @@ export const recordPayment = async () => {
         bootstrap.Modal.getInstance(document.getElementById("paymentModal")).hide();
         return true;
     } catch (err) {
+        let errorMessage = 'Failed to record payment (network/server error)';
+        let timer = 1800;
+
+        if (err.response && err.response.data) {
+            if (typeof err.response.data === 'object' && err.response.data.error) {
+                errorMessage = err.response.data.error;
+                timer = 3500;
+            } else if (typeof err.response.data === 'string') {
+                errorMessage = err.response.data;
+                timer = 3000;
+            }
+        }
+
         Swal.fire({
             toast: true,
             position: 'top-end',
             icon: 'error',
-            title: 'Failed to record payment (network/server error)',
+            title: errorMessage,
             showConfirmButton: false,
-            timer: 1800
+            timer: timer
         });
         console.error("[BillingModule] Payment API exception:", err);
-        if (err.response) {
-            console.error("[BillingModule] Payment API error response:", err.response.data);
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'error',
-                title: 'Payment API error: ' + (err.response.data?.error || 'Server error'),
-                showConfirmButton: false,
-                timer: 3000
-            });
-        }
         return false;
     }
 };

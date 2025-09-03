@@ -15,11 +15,13 @@ class Billing
                        res.reservation_id,
                        res.check_in_date,
                        res.check_out_date,
-                       bs.billing_status
+                       bs.billing_status,
+                       rs.reservation_status
                 FROM Billing b
                 LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
                 LEFT JOIN Guest g ON res.guest_id = g.guest_id
                 LEFT JOIN BillingStatus bs ON b.billing_status_id = bs.billing_status_id
+                LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
                 WHERE b.is_deleted = 0
                 ORDER BY b.billing_id DESC";
         $stmt = $db->prepare($sql);
@@ -60,8 +62,17 @@ class Billing
             foreach ($rooms as $room) {
                 $room_price += floatval($room['price_per_stay']);
             }
-            // Get total paid
-            $stmt2 = $db->prepare("SELECT SUM(amount_paid) as paid FROM Payment WHERE billing_id = :billing_id AND is_deleted = 0");
+            // Get total paid - only count if reservation is not pending
+            $stmt2 = $db->prepare("SELECT 
+                                        CASE 
+                                            WHEN rs.reservation_status = 'pending' THEN 0 
+                                            ELSE COALESCE(SUM(p.amount_paid), 0) 
+                                        END as paid 
+                                    FROM Payment p 
+                                    LEFT JOIN Billing b ON p.billing_id = b.billing_id
+                                    LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
+                                    LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
+                                    WHERE p.billing_id = :billing_id AND p.is_deleted = 0");
             $stmt2->bindParam(":billing_id", $billing['billing_id']);
             $stmt2->execute();
             $row = $stmt2->fetch(PDO::FETCH_ASSOC);
@@ -78,6 +89,27 @@ class Billing
             $billing['total_bill'] = $room_price + $addons_total;
             $billing['room_price'] = $room_price;
             $billing['addons_total'] = $addons_total;
+
+            // Override billing status based on reservation status
+            if ($billing['reservation_status'] === 'pending') {
+                // Force billing status to unpaid for pending reservations
+                $billing['billing_status'] = 'unpaid';
+                $billing['billing_status_id'] = 1; // 1 = unpaid
+            } else {
+                // For confirmed+ reservations, determine status based on payments
+                $remaining_amount = $billing['total_bill'] - $billing['amount_paid'];
+                if ($billing['amount_paid'] == 0) {
+                    $billing['billing_status'] = 'unpaid';
+                    $billing['billing_status_id'] = 1; // 1 = unpaid
+                } else if ($remaining_amount <= 0) {
+                    $billing['billing_status'] = 'paid';
+                    $billing['billing_status_id'] = 2; // 2 = paid
+                } else {
+                    $billing['billing_status'] = 'partial';
+                    $billing['billing_status_id'] = 3; // 3 = partial
+                }
+            }
+
             // Set billing_date to reservation's check_out_date if available
             if (!empty($billing['check_out_date'])) {
                 $billing['billing_date'] = $billing['check_out_date'];
@@ -95,11 +127,12 @@ class Billing
         $db = $database->getConnection();
         $json = is_array($json) ? $json : json_decode($json, true);
 
-        $sql = "SELECT b.*, CONCAT(g.first_name, ' ', g.last_name) AS guest_name, bs.billing_status
+        $sql = "SELECT b.*, CONCAT(g.first_name, ' ', g.last_name) AS guest_name, bs.billing_status, rs.reservation_status
         FROM Billing b
         LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
         LEFT JOIN Guest g ON res.guest_id = g.guest_id
         LEFT JOIN BillingStatus bs ON b.billing_status_id = bs.billing_status_id
+        LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
         WHERE b.reservation_id = :reservation_id AND b.is_deleted = 0
         LIMIT 1";
         $stmt = $db->prepare($sql);
@@ -159,10 +192,14 @@ class Billing
         }
         $total_bill = $room_price + $addons_total;
 
-        // Get payments
-        $sql3 = "SELECT p.*, p.amount_paid, p.payment_date, ps.name AS method_name, p.notes
+        // Get payments - only show/count if reservation is not pending
+        $sql3 = "SELECT p.*, p.amount_paid, p.payment_date, ps.name AS method_name, p.notes,
+                        rs.reservation_status
                  FROM Payment p
                  LEFT JOIN PaymentSubMethod ps ON p.sub_method_id = ps.sub_method_id
+                 LEFT JOIN Billing b ON p.billing_id = b.billing_id
+                 LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
+                 LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
                  WHERE p.billing_id = :billing_id AND p.is_deleted = 0";
         $stmt3 = $db->prepare($sql3);
         $stmt3->bindParam(":billing_id", $billing['billing_id']);
@@ -170,17 +207,47 @@ class Billing
         $payments = $stmt3->fetchAll(PDO::FETCH_ASSOC);
 
         $amount_paid = 0;
+        $filteredPayments = [];
         foreach ($payments as $p) {
-            $amount_paid += floatval($p['amount_paid']);
+            // Only count payments if reservation is not pending
+            if ($p['reservation_status'] !== 'pending') {
+                $amount_paid += floatval($p['amount_paid']);
+                $filteredPayments[] = $p;
+            } else {
+                // For pending reservations, show payments but mark them as "not counted"
+                $p['amount_paid_display'] = $p['amount_paid'];
+                $p['amount_paid'] = 0; // Don't count towards total
+                $p['status_note'] = 'Payment on hold - pending confirmation';
+                $filteredPayments[] = $p;
+            }
         }
 
         $remaining_amount = $total_bill - $amount_paid;
+
+        // Override billing status based on reservation status
+        if ($billing['reservation_status'] === 'pending') {
+            // Force billing status to unpaid for pending reservations
+            $billing['billing_status'] = 'unpaid';
+            $billing['billing_status_id'] = 1; // 1 = unpaid
+        } else {
+            // For confirmed+ reservations, determine status based on payments
+            if ($amount_paid == 0) {
+                $billing['billing_status'] = 'unpaid';
+                $billing['billing_status_id'] = 1; // 1 = unpaid
+            } else if ($remaining_amount <= 0) {
+                $billing['billing_status'] = 'paid';
+                $billing['billing_status_id'] = 2; // 2 = paid
+            } else {
+                $billing['billing_status'] = 'partial';
+                $billing['billing_status_id'] = 3; // 3 = partial
+            }
+        }
 
         $billing['room_price'] = $room_price;
         $billing['addons'] = $addons;
         $billing['addons_total'] = $addons_total;
         $billing['total_bill'] = $total_bill;
-        $billing['payments'] = $payments;
+        $billing['payments'] = $filteredPayments;
         $billing['amount_paid'] = $amount_paid;
         $billing['remaining_amount'] = $remaining_amount;
 
@@ -195,11 +262,12 @@ class Billing
         $db = $database->getConnection();
         $json = is_array($json) ? $json : json_decode($json, true);
 
-        $sql = "SELECT b.*, CONCAT(g.first_name, ' ', g.last_name) AS guest_name, bs.billing_status
+        $sql = "SELECT b.*, CONCAT(g.first_name, ' ', g.last_name) AS guest_name, bs.billing_status, rs.reservation_status
         FROM Billing b
         LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
         LEFT JOIN Guest g ON res.guest_id = g.guest_id
         LEFT JOIN BillingStatus bs ON b.billing_status_id = bs.billing_status_id
+        LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
         WHERE b.billing_id = :billing_id AND b.is_deleted = 0
         LIMIT 1";
         $stmt = $db->prepare($sql);
@@ -255,28 +323,62 @@ class Billing
         }
         $total_bill = $room_price + $addons_total;
 
-        // Get payments
-        $sql3 = "SELECT p.*, p.amount_paid, p.payment_date, ps.name AS method_name, p.notes
+        // Get payments - only show/count if reservation is not pending  
+        $sql3 = "SELECT p.*, p.amount_paid, p.payment_date, ps.name AS method_name, p.notes,
+                        rs.reservation_status
                  FROM Payment p
                  LEFT JOIN PaymentSubMethod ps ON p.sub_method_id = ps.sub_method_id
+                 LEFT JOIN Billing b ON p.billing_id = b.billing_id
+                 LEFT JOIN Reservation res ON b.reservation_id = res.reservation_id
+                 LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
                  WHERE p.billing_id = :billing_id AND p.is_deleted = 0";
         $stmt3 = $db->prepare($sql3);
-        $stmt3->bindParam(":billing_id", $billing['billing_id']);
+        $stmt3->bindParam(":billing_id", $json['billing_id']);
         $stmt3->execute();
         $payments = $stmt3->fetchAll(PDO::FETCH_ASSOC);
 
         $amount_paid = 0;
+        $filteredPayments = [];
         foreach ($payments as $p) {
-            $amount_paid += floatval($p['amount_paid']);
+            // Only count payments if reservation is not pending
+            if ($p['reservation_status'] !== 'pending') {
+                $amount_paid += floatval($p['amount_paid']);
+                $filteredPayments[] = $p;
+            } else {
+                // For pending reservations, show payments but mark them as "not counted"
+                $p['amount_paid_display'] = $p['amount_paid'];
+                $p['amount_paid'] = 0; // Don't count towards total
+                $p['status_note'] = 'Payment on hold - pending confirmation';
+                $filteredPayments[] = $p;
+            }
         }
 
         $remaining_amount = $total_bill - $amount_paid;
+
+        // Override billing status based on reservation status
+        if ($billing['reservation_status'] === 'pending') {
+            // Force billing status to unpaid for pending reservations
+            $billing['billing_status'] = 'unpaid';
+            $billing['billing_status_id'] = 1; // 1 = unpaid
+        } else {
+            // For confirmed+ reservations, determine status based on payments
+            if ($amount_paid == 0) {
+                $billing['billing_status'] = 'unpaid';
+                $billing['billing_status_id'] = 1; // 1 = unpaid
+            } else if ($remaining_amount <= 0) {
+                $billing['billing_status'] = 'paid';
+                $billing['billing_status_id'] = 2; // 2 = paid
+            } else {
+                $billing['billing_status'] = 'partial';
+                $billing['billing_status_id'] = 3; // 3 = partial
+            }
+        }
 
         $billing['room_price'] = $room_price;
         $billing['addons'] = $addons;
         $billing['addons_total'] = $addons_total;
         $billing['total_bill'] = $total_bill;
-        $billing['payments'] = $payments;
+        $billing['payments'] = $filteredPayments;
         $billing['amount_paid'] = $amount_paid;
         $billing['remaining_amount'] = $remaining_amount;
 
@@ -291,7 +393,7 @@ class Billing
         $json = is_array($json) ? $json : json_decode($json, true);
 
         $reservation_id = $json['reservation_id'];
-        
+
         // Check reservation status first - only allow billing for confirmed reservations
         $sqlStatus = "SELECT rs.reservation_status 
                      FROM Reservation r 
@@ -301,12 +403,12 @@ class Billing
         $stmtStatus->bindParam(":reservation_id", $reservation_id);
         $stmtStatus->execute();
         $statusRow = $stmtStatus->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$statusRow || $statusRow['reservation_status'] === 'pending') {
             echo json_encode(['error' => 'Cannot create billing for pending reservations. Please confirm the reservation first.']);
             return;
         }
-        
+
         // Prevent duplicate billing for the same reservation
         $sqlCheck = "SELECT COUNT(*) FROM Billing WHERE reservation_id = :reservation_id AND is_deleted = 0";
         $stmtCheck = $db->prepare($sqlCheck);
@@ -392,6 +494,35 @@ class Billing
         echo json_encode($returnValue);
     }
 
+    function checkReservationStatus($json)
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+        $json = is_array($json) ? $json : json_decode($json, true);
+
+        $sql = "SELECT rs.reservation_status, r.reservation_id 
+                FROM Reservation r 
+                LEFT JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id 
+                WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(":reservation_id", $json['reservation_id']);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$result) {
+            echo json_encode(['error' => 'Reservation not found']);
+            return;
+        }
+
+        echo json_encode([
+            'reservation_id' => $result['reservation_id'],
+            'reservation_status' => $result['reservation_status'],
+            'can_bill' => $result['reservation_status'] !== 'pending',
+            'can_pay' => $result['reservation_status'] !== 'pending'
+        ]);
+    }
+
     function updateBillingStatus($json)
     {
         include_once '../../config/database.php';
@@ -453,5 +584,8 @@ switch ($operation) {
         break;
     case "updateBillingStatus":
         $billing->updateBillingStatus($json);
+        break;
+    case "checkReservationStatus":
+        $billing->checkReservationStatus($json);
         break;
 }
