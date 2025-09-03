@@ -145,23 +145,38 @@ class Billing
             exit;
         }
 
-        // Get all reserved rooms for this reservation - DISTINCT by room_id only
-        $sqlRooms = "SELECT DISTINCT r.room_id, 
+        // Get all reserved rooms for this reservation - handle both specific rooms and room types
+        $sqlRooms = "SELECT rr.reserved_room_id,
+                            r.room_id, 
                             r.room_number, 
-                            rt.type_name, 
-                            rt.price_per_stay
+                            COALESCE(rt.type_name, rt2.type_name) AS type_name, 
+                            COALESCE(rt.price_per_stay, rt2.price_per_stay) AS price_per_stay
             FROM ReservedRoom rr
             LEFT JOIN Room r ON rr.room_id = r.room_id
             LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id
+            LEFT JOIN RoomType rt2 ON rr.room_type_id = rt2.room_type_id
             WHERE rr.reservation_id = :reservation_id AND rr.is_deleted = 0
-            ORDER BY r.room_id";
+            ORDER BY rr.reserved_room_id";
         $stmtRooms = $db->prepare($sqlRooms);
         $stmtRooms->bindParam(":reservation_id", $json['reservation_id']);
         $stmtRooms->execute();
         $rooms = $stmtRooms->fetchAll(PDO::FETCH_ASSOC);
 
-        // We can't get companions anymore since we don't have reserved_room_id
-        // If companions are needed, you'll need to modify this approach
+        // Get companions for each reserved room
+        foreach ($rooms as &$room) {
+            if ($room['reserved_room_id']) {
+                $sqlCompanions = "SELECT full_name FROM ReservedRoomCompanion 
+                                 WHERE reserved_room_id = :reserved_room_id AND is_deleted = 0";
+                $stmtCompanions = $db->prepare($sqlCompanions);
+                $stmtCompanions->bindParam(":reserved_room_id", $room['reserved_room_id']);
+                $stmtCompanions->execute();
+                $companions = $stmtCompanions->fetchAll(PDO::FETCH_COLUMN);
+                $room['companions'] = $companions;
+            } else {
+                $room['companions'] = [];
+            }
+        }
+
         $billing['rooms'] = $rooms;
 
         // Get addons for this billing

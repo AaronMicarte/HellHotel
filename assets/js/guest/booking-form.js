@@ -27,13 +27,15 @@ showStep(0);
 // Load ID types
 async function loadIdTypes() {
     try {
-        const { data } = await axios.get('/Hotel-Reservation-Billing-System/api/admin/guests/id_types.php');
+        const { data } = await axios.get('/Hotel-Reservation-Billing-System/api/admin/guests/id_types.php', {
+            params: { operation: 'getAllIDTypes' }
+        });
         const select = document.getElementById('idType');
         if (!select) return;
         const sorted = Array.isArray(data) ? [...data].sort((a, b) => (a.id_type || '').localeCompare(b.id_type || '')) : [];
         select.innerHTML = '<option value="">Select ID Type</option>' +
             sorted.map(t =>
-                `<option value="${t.id_type}">${t.id_type}</option>`
+                `<option value="${t.guest_idtype_id}">${t.id_type}</option>`
             ).join('');
     } catch { }
 }
@@ -123,7 +125,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 async function loadAllRoomTypes() {
     try {
-        const { data } = await axios.get('/Hotel-Reservation-Billing-System/api/admin/rooms/room-type.php');
+        const { data } = await axios.get('/Hotel-Reservation-Billing-System/api/admin/rooms/room-type.php', {
+            params: { operation: 'getAllRoomTypes' }
+        });
         roomTypes = Array.isArray(data) ? data : [];
         displayRoomTypeCards();
     } catch (error) {
@@ -734,6 +738,9 @@ document.getElementById('toStep3Btn').onclick = function () {
 let paymentCategories = [];
 let paymentSubMethods = [];
 let selectedPaymentCategory = '';
+let selectedPaymentMethod = '';
+let selectedPaymentMethodId = '';
+let selectedPaymentInstructions = '';
 // Add global variable for reference number
 let selectedPaymentReferenceNumber = '';
 
@@ -762,6 +769,7 @@ async function loadPaymentCategoriesAndMethods() {
                 .join('');
         select.disabled = false;
     } catch (e) {
+        console.error('Payment methods error:', e);
         const select = document.getElementById('paymentMethod');
         if (select) {
             select.innerHTML = '<option value="">Payment methods unavailable</option>';
@@ -1212,116 +1220,126 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
         return;
     }
 
-    // 2. Create reservations for each room type
-    const reservations = [];
+    // 2. Create ONE reservation with multiple rooms
+    let reservationId = null;
     try {
-        for (const [roomTypeId, quantity] of Object.entries(selectedRooms)) {
-            const roomType = roomTypes.find(r => r.room_type_id == roomTypeId);
-            if (!roomType) continue;
-
-            // Create a reservation for each room of this type
+        // Prepare rooms array for the reservation
+        const roomsArray = [];
+        Object.entries(selectedRooms).forEach(([roomTypeId, quantity]) => {
             for (let i = 0; i < quantity; i++) {
-                const reservationData = {
-                    guest_id: guestId,
+                roomsArray.push({
                     room_type_id: roomTypeId,
-                    check_in_date: checkInDate,
-                    check_out_date: checkOutDate,
-                    guests: 1, // Main guest is assigned to first room, companions handled separately
-                    reservation_type: 'online' // Mark as online booking
-                };
-
-                const formData = new FormData();
-                formData.append('operation', 'insertReservation');
-                formData.append('json', JSON.stringify(reservationData));
-
-                const res = await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/reservations.php', formData);
-                const reservationId = res.data && res.data.reservation_id ? res.data.reservation_id : null;
-
-                if (reservationId) {
-                    reservations.push({
-                        reservationId,
-                        roomTypeId,
-                        price: roomType.price_per_stay,
-                        isFirstRoom: i === 0 // Track if this is the first room for this type
-                    });
-                }
+                    room_id: null // NULL for online booking - admin will assign later
+                });
             }
-        }
+        });
 
-        if (reservations.length === 0) {
-            throw new Error('Failed to create any reservations');
+        const reservationData = {
+            guest_id: guestId,
+            check_in_date: checkInDate,
+            check_out_date: checkOutDate,
+            reservation_type: 'online',
+            rooms: roomsArray // Send all rooms in one reservation
+        };
+
+        const formData = new FormData();
+        formData.append('operation', 'insertReservation');
+        formData.append('json', JSON.stringify(reservationData));
+
+        const res = await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/reservations.php', formData);
+        reservationId = res.data && res.data.reservation_id ? res.data.reservation_id : null;
+
+        if (!reservationId) {
+            throw new Error('Failed to get reservation ID from response');
         }
     } catch (err) {
-        Swal.fire('Error', 'Failed to create reservations', 'error');
+        console.error('Reservation creation error:', err);
+        Swal.fire('Error', 'Failed to create reservation', 'error');
         return;
     }
 
-    // 2b. Save companions if any
-    if (Object.values(roomCompanions).some(room => room.numCompanions > 0) && reservations.length > 0) {
-        try {
-            // Get the first reserved room ID for each reservation
-            for (let i = 0; i < reservations.length; i++) {
-                const reservationId = reservations[i].reservationId;
-                const roomTypeId = reservations[i].roomTypeId;
-
-                // Skip if no companions for this room type
-                const roomCompanion = roomCompanions[roomTypeId];
-                if (!roomCompanion || roomCompanion.numCompanions === 0) continue;
-
-                const getReservedRoomRes = await axios.get(`/Hotel-Reservation-Billing-System/api/admin/reservations/reserved_rooms.php?reservation_id=${reservationId}`);
-                const reservedRooms = Array.isArray(getReservedRoomRes.data) ? getReservedRoomRes.data : [];
-
-                if (reservedRooms.length > 0) {
-                    const reservedRoomId = reservedRooms[0].reserved_room_id;
-
-                    // Save companions for this room
-                    for (let j = 0; j < roomCompanion.numCompanions; j++) {
-                        const companion = roomCompanion.companions[j];
-                        if (!companion || !companion.full_name.trim()) continue;
-
-                        const companionData = {
-                            reserved_room_id: reservedRoomId,
-                            full_name: companion.full_name.trim()
-                        };
-
-                        const formData = new FormData();
-                        formData.append('operation', 'insertCompanion');
-                        formData.append('json', JSON.stringify(companionData));
-
-                        await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/companions.php', formData);
-                    }
-                }
-            }
-        } catch (err) {
-            console.error('Failed to save companions:', err);
-            // Non-fatal error, continue with booking
-        }
-    }    // 3. Save payment (50% downpayment) for all reservations
+    // 2b. Save companions for each reserved room
     try {
-        // Get reference number if applicable
+        // Get all reserved rooms for this reservation
+        const getReservedRoomsRes = await axios.get(`/Hotel-Reservation-Billing-System/api/admin/reservations/reserved_rooms.php?reservation_id=${reservationId}`);
+        const reservedRooms = Array.isArray(getReservedRoomsRes.data) ? getReservedRoomsRes.data : [];
+
+        // Map companions to reserved rooms based on room type and index
+        let roomIndex = 0;
+        Object.entries(selectedRooms).forEach(([roomTypeId, quantity]) => {
+            for (let i = 0; i < quantity; i++) {
+                const roomCompanionKey = `${roomTypeId}-${i}`;
+                const roomCompanion = roomCompanions[roomCompanionKey];
+
+                if (roomCompanion && roomCompanion.numCompanions > 0 && reservedRooms[roomIndex]) {
+                    const reservedRoomId = reservedRooms[roomIndex].reserved_room_id;
+
+                    // Save companions for this reserved room
+                    roomCompanion.companions.forEach(async (companion) => {
+                        if (companion && companion.full_name && companion.full_name.trim()) {
+                            const companionData = {
+                                reserved_room_id: reservedRoomId,
+                                full_name: companion.full_name.trim()
+                            };
+
+                            const formData = new FormData();
+                            formData.append('operation', 'insertCompanion');
+                            formData.append('json', JSON.stringify(companionData));
+
+                            await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/companions.php', formData);
+                        }
+                    });
+                }
+                roomIndex++;
+            }
+        });
+    } catch (err) {
+        console.error('Failed to save companions:', err);
+        // Non-fatal error, continue with booking
+    }    // 3. Get billing info for the reservation to get billing_id
+    let billingId = null;
+    try {
+        const billingRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/billing/billing.php', {
+            params: { operation: 'getBillingByReservation', reservation_id: reservationId }
+        });
+        if (billingRes.data && billingRes.data.billing_id) {
+            billingId = billingRes.data.billing_id;
+        } else {
+            throw new Error('No billing record found for reservation');
+        }
+    } catch (err) {
+        console.error('Failed to get billing information:', err);
+        Swal.fire('Error', 'Failed to get billing information', 'error');
+        return;
+    }
+
+    // 4. Update payment amount in existing payment record (since auto-payment was created)
+    try {
+        // Find the auto-generated payment and update it with proper method details
         const referenceNumber = document.getElementById('referenceNumber');
         const proofOfPayment = document.getElementById('proofOfPayment');
 
-        // Create a single payment record for the full downpayment amount
-        const paymentData = {
-            reservation_id: reservations[0].reservationId, // Associate with first reservation
-            sub_method_id: paymentMethodId,
+        const paymentUpdateData = {
+            billing_id: billingId,
+            sub_method_id: selectedPaymentMethodId,
             amount_paid: totalAmount * 0.5
         };
 
         // Add reference number if provided
         if (referenceNumber && referenceNumber.value.trim()) {
-            paymentData.reference_number = referenceNumber.value.trim();
+            paymentUpdateData.reference_number = referenceNumber.value.trim();
         }
 
         // Add notes for proof of payment if provided
         if (proofOfPayment && proofOfPayment.files.length > 0) {
-            paymentData.notes = 'Proof of payment uploaded';
+            paymentUpdateData.notes = 'Proof of payment uploaded - Guest booking';
+        } else {
+            paymentUpdateData.notes = 'Guest booking payment';
         }
 
         const formData = new FormData();
-        formData.append('operation', 'createPayment');
-        formData.append('json', JSON.stringify(paymentData));
+        formData.append('operation', 'updateLatestPayment');
+        formData.append('json', JSON.stringify(paymentUpdateData));
 
         // Upload proof of payment if provided
         if (proofOfPayment && proofOfPayment.files.length > 0) {
@@ -1330,8 +1348,8 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
 
         await axios.post('/Hotel-Reservation-Billing-System/api/admin/payments/payments.php', formData);
     } catch (err) {
-        Swal.fire('Error', 'Failed to save payment', 'error');
-        return;
+        console.error('Failed to update payment:', err);
+        // Non-fatal error, booking was still successful
     }
 
     // Success
@@ -1345,7 +1363,7 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
             <div class="booking-confirmation">
                 <p>Thank you for booking with HellHotel.</p>
                 <div class="confirmation-details mt-3">
-                    <p><strong>Reservation ID:</strong> ${reservations[0].reservationId}</p>
+                    <p><strong>Reservation ID:</strong> ${reservationId}</p>
                     <p><strong>Check-in Date:</strong> ${formatDate(checkInDate)}</p>
                     <p><strong>Check-out Date:</strong> ${formatDate(checkOutDate)}</p>
                     <p><strong>Amount Paid:</strong> ₱${(totalAmount * 0.5).toFixed(2)} (50% Downpayment)</p>

@@ -59,8 +59,8 @@ class PaymentAPI
             return;
         }
 
-        // Validate required fields
-        $required = ['user_id', 'billing_id', 'reservation_id', 'sub_method_id', 'amount_paid', 'payment_date'];
+        // Validate required fields - user_id is optional for online guest bookings
+        $required = ['billing_id', 'reservation_id', 'sub_method_id', 'amount_paid', 'payment_date'];
         foreach ($required as $field) {
             if (!isset($json[$field]) || $json[$field] === "" || $json[$field] === null) {
                 $error = "Missing required field: $field";
@@ -69,6 +69,9 @@ class PaymentAPI
                 return;
             }
         }
+
+        // Set user_id to null for online guest bookings if not provided
+        $user_id = isset($json['user_id']) && !empty($json['user_id']) ? $json['user_id'] : null;
 
         // Validate notes and reference number for electronic payments (GCash=1, PayMaya=2)
         $sub_method_id = intval($json['sub_method_id']);
@@ -90,7 +93,7 @@ class PaymentAPI
         $sql = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number)
                 VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :payment_date, :notes, :reference_number)";
         $stmt = $db->prepare($sql);
-        $stmt->bindParam(":user_id", $json['user_id']);
+        $stmt->bindParam(":user_id", $user_id);
         $stmt->bindParam(":billing_id", $json['billing_id']);
         $stmt->bindParam(":reservation_id", $json['reservation_id']);
         $stmt->bindParam(":sub_method_id", $json['sub_method_id']);
@@ -176,6 +179,52 @@ class PaymentAPI
         echo json_encode($returnValue);
     }
 
+    function updateLatestPayment($json)
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+        $json = json_decode($json, true);
+
+        // Find the latest payment for this billing
+        $sqlFind = "SELECT payment_id FROM Payment WHERE billing_id = :billing_id AND is_deleted = 0 ORDER BY payment_id DESC LIMIT 1";
+        $stmtFind = $db->prepare($sqlFind);
+        $stmtFind->bindParam(":billing_id", $json['billing_id']);
+        $stmtFind->execute();
+        $paymentId = $stmtFind->fetchColumn();
+
+        if (!$paymentId) {
+            echo json_encode(['success' => false, 'error' => 'No payment found to update']);
+            return;
+        }
+
+        // Update the payment
+        $updateFields = [];
+        $params = [':payment_id' => $paymentId];
+
+        foreach (['sub_method_id', 'amount_paid', 'notes', 'reference_number'] as $field) {
+            if (isset($json[$field])) {
+                $updateFields[] = "$field = :$field";
+                $params[":$field"] = $json[$field];
+            }
+        }
+
+        if (empty($updateFields)) {
+            echo json_encode(['success' => false, 'error' => 'No fields to update']);
+            return;
+        }
+
+        $sql = "UPDATE Payment SET " . implode(", ", $updateFields) . " WHERE payment_id = :payment_id";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+
+        if ($stmt->rowCount() > 0) {
+            echo json_encode(['success' => true, 'payment_id' => $paymentId]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Payment update failed']);
+        }
+    }
+
     function deletePayment($json)
     {
         include_once '../../config/database.php';
@@ -225,6 +274,9 @@ switch ($operation) {
         break;
     case "updatePayment":
         $payment->updatePayment($json);
+        break;
+    case "updateLatestPayment":
+        $payment->updateLatestPayment($json);
         break;
     case "deletePayment":
         $payment->deletePayment($json);

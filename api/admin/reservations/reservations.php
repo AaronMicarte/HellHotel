@@ -202,48 +202,60 @@ class Reservation
                 foreach ($json['rooms'] as $room) {
                     $room_id = isset($room['room_id']) ? $room['room_id'] : null;
                     $room_type_id = isset($room['room_type_id']) ? $room['room_type_id'] : null;
-                    if ($room_id) {
-                        // Check if this room is already added (prevent duplicates)
-                        $sqlCheck = "SELECT COUNT(*) FROM ReservedRoom WHERE reservation_id = :reservation_id AND room_id = :room_id AND is_deleted = 0";
-                        $stmtCheck = $db->prepare($sqlCheck);
-                        $stmtCheck->bindParam(':reservation_id', $reservationId);
-                        $stmtCheck->bindParam(':room_id', $room_id);
-                        $stmtCheck->execute();
-                        $exists = $stmtCheck->fetchColumn();
 
-                        if (!$exists) {
-                            // Get room_type_id from Room table if not provided
-                            if (!$room_type_id) {
-                                $sqlGetType = "SELECT room_type_id FROM Room WHERE room_id = :room_id";
-                                $stmtGetType = $db->prepare($sqlGetType);
-                                $stmtGetType->bindParam(':room_id', $room_id);
-                                $stmtGetType->execute();
-                                $room_type_id = $stmtGetType->fetchColumn();
+                    if ($room_type_id) { // For online booking, room_type_id is required, room_id can be null
+                        if ($room_id) {
+                            // Admin booking - check if this specific room is already added (prevent duplicates)
+                            $sqlCheck = "SELECT COUNT(*) FROM ReservedRoom WHERE reservation_id = :reservation_id AND room_id = :room_id AND is_deleted = 0";
+                            $stmtCheck = $db->prepare($sqlCheck);
+                            $stmtCheck->bindParam(':reservation_id', $reservationId);
+                            $stmtCheck->bindParam(':room_id', $room_id);
+                            $stmtCheck->execute();
+                            $exists = $stmtCheck->fetchColumn();
+
+                            if (!$exists) {
+                                // Get room_type_id from Room table if not provided
+                                if (!$room_type_id) {
+                                    $sqlGetType = "SELECT room_type_id FROM Room WHERE room_id = :room_id";
+                                    $stmtGetType = $db->prepare($sqlGetType);
+                                    $stmtGetType->bindParam(':room_id', $room_id);
+                                    $stmtGetType->execute();
+                                    $room_type_id = $stmtGetType->fetchColumn();
+                                }
+
+                                $sql2 = "INSERT INTO ReservedRoom (reservation_id, room_id, room_type_id) VALUES (:reservation_id, :room_id, :room_type_id)";
+                                $stmt2 = $db->prepare($sql2);
+                                $stmt2->bindParam(':reservation_id', $reservationId);
+                                $stmt2->bindParam(':room_id', $room_id);
+                                $stmt2->bindParam(':room_type_id', $room_type_id);
+                                $stmt2->execute();
+                                $reserved_room_id_multi = $db->lastInsertId();
+
+                                // Only set room status to reserved if reservation is confirmed
+                                if ($reservation_status_id == 2) { // 2 = confirmed
+                                    $this->updateRoomStatus($room_id, 4); // 4 = reserved
+                                }
                             }
-
-                            $sql2 = "INSERT INTO ReservedRoom (reservation_id, room_id, room_type_id) VALUES (:reservation_id, :room_id, :room_type_id)";
+                        } else {
+                            // Online booking - room_id is null, just create ReservedRoom with room_type_id
+                            $sql2 = "INSERT INTO ReservedRoom (reservation_id, room_id, room_type_id) VALUES (:reservation_id, NULL, :room_type_id)";
                             $stmt2 = $db->prepare($sql2);
                             $stmt2->bindParam(':reservation_id', $reservationId);
-                            $stmt2->bindParam(':room_id', $room_id);
                             $stmt2->bindParam(':room_type_id', $room_type_id);
                             $stmt2->execute();
                             $reserved_room_id_multi = $db->lastInsertId();
+                        }
 
-                            // Save companions for this room
-                            if (!empty($room['companions']) && is_array($room['companions'])) {
-                                foreach ($room['companions'] as $companionName) {
-                                    if (trim($companionName) !== "") {
-                                        $sqlComp = "INSERT INTO ReservedRoomCompanion (reserved_room_id, full_name) VALUES (:reserved_room_id, :full_name)";
-                                        $stmtComp = $db->prepare($sqlComp);
-                                        $stmtComp->bindParam(':reserved_room_id', $reserved_room_id_multi);
-                                        $stmtComp->bindParam(':full_name', $companionName);
-                                        $stmtComp->execute();
-                                    }
+                        // Save companions for this room
+                        if (!empty($room['companions']) && is_array($room['companions'])) {
+                            foreach ($room['companions'] as $companionName) {
+                                if (trim($companionName) !== "") {
+                                    $sqlComp = "INSERT INTO ReservedRoomCompanion (reserved_room_id, full_name) VALUES (:reserved_room_id, :full_name)";
+                                    $stmtComp = $db->prepare($sqlComp);
+                                    $stmtComp->bindParam(':reserved_room_id', $reserved_room_id_multi);
+                                    $stmtComp->bindParam(':full_name', $companionName);
+                                    $stmtComp->execute();
                                 }
-                            }
-                            // Only set room status to reserved if reservation is confirmed
-                            if ($reservation_status_id == 2) { // 2 = confirmed
-                                $this->updateRoomStatus($room_id, 4); // 4 = reserved
                             }
                         }
                     }
