@@ -27,16 +27,35 @@ class Guest
         include_once '../../config/database.php';
         $database = new Database();
         $db = $database->getConnection();
-        $json = json_decode($json, true);
+
+        // Handle both JSON parameter and direct POST data
+        if (is_string($json)) {
+            $data = json_decode($json, true);
+        } else {
+            $data = $json;
+        }
+
+        // If JSON decode failed or data is empty, try to get from POST
+        if (!$data) {
+            $data = $_POST;
+        }
+
+        // Handle file upload from $_FILES if present
+        $id_picture_data = null;
+        if (isset($_FILES['id_picture']) && $_FILES['id_picture']['error'] === UPLOAD_ERR_OK) {
+            $id_picture_data = file_get_contents($_FILES['id_picture']['tmp_name']);
+        } else if (isset($data['id_picture']) && $data['id_picture']) {
+            $id_picture_data = $data['id_picture'];
+        }
 
         // Defensive: check required fields
         if (
-            empty($json['guest_idtype_id']) ||
-            empty($json['last_name']) ||
-            empty($json['first_name']) ||
-            empty($json['email']) ||
-            empty($json['phone_number']) ||
-            empty($json['id_number'])
+            empty($data['guest_idtype_id']) ||
+            empty($data['last_name']) ||
+            empty($data['first_name']) ||
+            empty($data['email']) ||
+            empty($data['phone_number']) ||
+            empty($data['id_number'])
         ) {
             echo json_encode(0);
             return;
@@ -45,22 +64,25 @@ class Guest
         $sql = "INSERT INTO Guest (guest_idtype_id, last_name, first_name, middle_name, suffix, date_of_birth, email, phone_number, id_number, id_picture)
                 VALUES (:guest_idtype_id, :last_name, :first_name, :middle_name, :suffix, :date_of_birth, :email, :phone_number, :id_number, :id_picture)";
         $stmt = $db->prepare($sql);
-        $stmt->bindParam(":guest_idtype_id", $json['guest_idtype_id']);
-        $stmt->bindParam(":last_name", $json['last_name']);
-        $stmt->bindParam(":first_name", $json['first_name']);
-        $stmt->bindParam(":middle_name", $json['middle_name']);
-        $stmt->bindParam(":suffix", $json['suffix']);
-        $stmt->bindParam(":date_of_birth", $json['date_of_birth']);
-        $stmt->bindParam(":email", $json['email']);
-        $stmt->bindParam(":phone_number", $json['phone_number']);
-        $stmt->bindParam(":id_number", $json['id_number']);
-        $stmt->bindParam(":id_picture", $json['id_picture']);
+        $stmt->bindParam(":guest_idtype_id", $data['guest_idtype_id']);
+        $stmt->bindParam(":last_name", $data['last_name']);
+        $stmt->bindParam(":first_name", $data['first_name']);
+        $stmt->bindParam(":middle_name", $data['middle_name']);
+        $stmt->bindParam(":suffix", $data['suffix']);
+        $stmt->bindParam(":date_of_birth", $data['date_of_birth']);
+        $stmt->bindParam(":email", $data['email']);
+        $stmt->bindParam(":phone_number", $data['phone_number']);
+        $stmt->bindParam(":id_number", $data['id_number']);
+        $stmt->bindParam(":id_picture", $id_picture_data);
         $stmt->execute();
 
         $returnValue = 0;
         if ($stmt->rowCount() > 0) {
+            $guest_id = $db->lastInsertId();
+            // Return object with guest_id for new code, but also make it backwards compatible
             $returnValue = [
-                "guest_id" => $db->lastInsertId()
+                "guest_id" => $guest_id,
+                "success" => 1
             ];
         }
         echo json_encode($returnValue);

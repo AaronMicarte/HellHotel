@@ -1191,10 +1191,15 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
     try {
         const guestData = window.bookingGuestInfo;
         const formData = new FormData();
-        Object.entries(guestData).forEach(([k, v]) => {
-            if (v !== null) formData.append(k, v);
-        });
+
+        // Handle ID picture separately if present
+        if (guestData.id_picture) {
+            formData.append('id_picture', guestData.id_picture);
+            delete guestData.id_picture; // Remove from JSON payload since it's handled separately
+        }
+
         formData.append('operation', 'insertGuest');
+        formData.append('json', JSON.stringify(guestData));
         const res = await axios.post('/Hotel-Reservation-Billing-System/api/admin/guests/guests.php', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -1221,11 +1226,12 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
                     room_type_id: roomTypeId,
                     check_in_date: checkInDate,
                     check_out_date: checkOutDate,
-                    guests: 1 // Main guest is assigned to first room, companions handled separately
+                    guests: 1, // Main guest is assigned to first room, companions handled separately
+                    reservation_type: 'online' // Mark as online booking
                 };
 
                 const formData = new FormData();
-                formData.append('operation', 'createReservation');
+                formData.append('operation', 'insertReservation');
                 formData.append('json', JSON.stringify(reservationData));
 
                 const res = await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/reservations.php', formData);

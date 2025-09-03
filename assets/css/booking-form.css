@@ -122,23 +122,25 @@
 }
 
 #summaryDownPayment {
-    color: var(--primary-color, #d20707) !important;
-    font-weight: 800 !important;
+    color: #ffd700 !important;
+    font-weight: 700 !important;
     font-size: 1.2rem !important;
-    font-family: var(--font-primary, 'Inter');
+    background: rgba(255, 215, 0, 0.1) !important;
+    padding: 0.5rem !important;
+    border-radius: 5px !important;
+    border-left: 3px solid #ffd700 !important;
 }
 
-/* Payment Method Styling - Minimal Design */
-/* Simple Payment Method Buttons */
+/* Payment Method Styling - Full Row Width */
 .payment-method-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    width: 100%;
     gap: 1rem;
     margin-bottom: 1.5rem;
-    width: 100%;
 }
 
 .payment-method-buttons .payment-sub-method-btn {
+    flex: 1;
     text-align: center;
     padding: 1rem;
     border-radius: 8px;

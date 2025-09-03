@@ -1337,7 +1337,7 @@ async function saveGuest() {
 
     try {
         const response = await axios.post(`${BASE_URL}/guests/guests.php`, formData);
-        if (response.data == 1) {
+        if (response.data && (response.data.success === 1 || response.data == 1)) {
             loadGuests();
             showSuccess("Guest added!");
         } else {
@@ -1613,7 +1613,7 @@ async function saveReservation() {
     formData.append("json", JSON.stringify(jsonData));
     try {
         const response = await axios.post(`${BASE_URL}/reservations/reservations.php`, formData);
-        if (response.data == 1) {
+        if (response.data && (response.data.success === 1 || response.data == 1)) {
             displayReservations();
             const modal = document.getElementById("reservationModal");
             if (modal && window.bootstrap) {

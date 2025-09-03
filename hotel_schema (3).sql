@@ -69,6 +69,7 @@ CREATE TABLE Reservation (
     reservation_status_id INT,
     guest_id INT,
     reservation_type ENUM('online', 'walk-in') NOT NULL DEFAULT 'online',
+    requested_room_type_id INT NULL,
     check_in_date DATE,
     check_out_date DATE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -76,7 +77,8 @@ CREATE TABLE Reservation (
     is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (user_id) REFERENCES User(user_id),
     FOREIGN KEY (reservation_status_id) REFERENCES ReservationStatus(reservation_status_id),
-    FOREIGN KEY (guest_id) REFERENCES Guest(guest_id)
+    FOREIGN KEY (guest_id) REFERENCES Guest(guest_id),
+    FOREIGN KEY (requested_room_type_id) REFERENCES RoomType(room_type_id)
 );
 
 -- ROOM & ROOM ATTRIBUTES
@@ -128,11 +130,13 @@ CREATE TABLE ReservedRoom (
     reserved_room_id INT AUTO_INCREMENT PRIMARY KEY,
     reservation_id INT,
     room_id INT,
+    room_type_id INT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
-    FOREIGN KEY (room_id) REFERENCES Room(room_id)
+    FOREIGN KEY (room_id) REFERENCES Room(room_id),
+    FOREIGN KEY (room_type_id) REFERENCES RoomType(room_type_id)
 );
 
 CREATE TABLE RoomImage (
