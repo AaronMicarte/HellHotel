@@ -562,6 +562,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================
 // === RESERVATIONS TABLE ===
 // ==========================
+// This page shows CONFIRMED BOOKINGS ONLY
+// - Walk-in bookings: Created directly as 'confirmed' here
+// - Online bookings: Start as 'pending', get room assignment in online-bookings.js, then become 'confirmed' and show here
 async function displayReservations(data) {
     // If data is provided, use it; otherwise fetch all
     if (data) {
@@ -572,7 +575,7 @@ async function displayReservations(data) {
         const response = await axios.get(`${BASE_URL}/reservations/reservations.php`, {
             params: {
                 operation: "getAllReservations",
-                view: "confirmed"  // Only show confirmed bookings
+                view: "confirmed"  // Only show confirmed bookings (walk-in + online bookings that completed room assignment)
             }
         });
 
@@ -1618,7 +1621,8 @@ async function loadStatuses() {
                 select.appendChild(option);
             });
 
-            // Set default to "confirmed" for walk-in reservations
+            // Set default to "confirmed" for walk-in reservations created in this admin panel
+            // Note: Online bookings start as "pending" and only show here after being confirmed
             const confirmedStatus = cachedStatuses.find(s => s.reservation_status.toLowerCase() === 'confirmed');
             if (confirmedStatus) {
                 select.value = confirmedStatus.reservation_status_id;

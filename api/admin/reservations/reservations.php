@@ -138,15 +138,6 @@ class Reservation
 
         $userId = isset($json['user_id']) ? $json['user_id'] : null;
 
-        // Set reservation status based on type:
-        // Walk-in reservations by admin should be confirmed by default (status 2)
-        // Online reservations start as pending (status 1)
-        if (isset($json['reservation_status_id']) && is_numeric($json['reservation_status_id'])) {
-            $reservation_status_id = $json['reservation_status_id'];
-        } else {
-            $reservation_status_id = $userId ? 2 : 1; // Admin walk-in = confirmed, online = pending
-        }
-
         // Set reservation_type based on the source:
         // 1. Use explicit reservation_type from payload if provided
         // 2. If user_id is present (admin/staff creating), it's 'walk-in'
@@ -155,6 +146,15 @@ class Reservation
             $reservation_type = $json['reservation_type'];
         } else {
             $reservation_type = $userId ? 'walk-in' : 'online';
+        }
+
+        // Set reservation status based on reservation TYPE, not user ID:
+        // Walk-in reservations by admin should be confirmed by default (status 2)
+        // Online reservations ALWAYS start as pending (status 1)
+        if (isset($json['reservation_status_id']) && is_numeric($json['reservation_status_id'])) {
+            $reservation_status_id = $json['reservation_status_id'];
+        } else {
+            $reservation_status_id = ($reservation_type === 'walk-in') ? 2 : 1; // Walk-in = confirmed, online = pending
         }
 
         // For walk-in reservations: use room_type_id from assigned room
