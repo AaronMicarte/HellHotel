@@ -91,6 +91,7 @@ async function loadOnlineBookings() {
             params: {
                 operation: 'getAllReservations',
                 type: 'online',  // Only online bookings
+                view: 'pending', // Only pending bookings that need assignment
                 ...filters
             }
         });
@@ -304,9 +305,18 @@ async function viewAssignedRooms(reservationId) {
                 params: { operation: 'getAllReservedRooms' }
             });
             if (Array.isArray(allResponse.data)) {
-                reservedRooms = allResponse.data.filter(r =>
-                    String(r.reservation_id) === String(reservationId) && r.is_deleted == 0
-                );
+                reservedRooms = allResponse.data
+                    .filter(r => String(r.reservation_id) === String(reservationId) && r.is_deleted == 0)
+                    .sort((a, b) => {
+                        // Sort by creation order (ID or created_at) - first created = main guest room
+                        if (a.reserved_room_id && b.reserved_room_id) {
+                            return parseInt(a.reserved_room_id) - parseInt(b.reserved_room_id);
+                        }
+                        if (a.created_at && b.created_at) {
+                            return new Date(a.created_at) - new Date(b.created_at);
+                        }
+                        return 0;
+                    });
             }
         }
 
@@ -409,9 +419,18 @@ async function openRoomAssignment(reservationId) {
             });
 
             if (Array.isArray(allReservedResponse.data)) {
-                window.reservedRooms = allReservedResponse.data.filter(r =>
-                    String(r.reservation_id) === String(reservationId) && r.is_deleted == 0
-                );
+                window.reservedRooms = allReservedResponse.data
+                    .filter(r => String(r.reservation_id) === String(reservationId) && r.is_deleted == 0)
+                    .sort((a, b) => {
+                        // Sort by creation order (ID or created_at) - first created = main guest room
+                        if (a.reserved_room_id && b.reserved_room_id) {
+                            return parseInt(a.reserved_room_id) - parseInt(b.reserved_room_id);
+                        }
+                        if (a.created_at && b.created_at) {
+                            return new Date(a.created_at) - new Date(b.created_at);
+                        }
+                        return 0;
+                    });
                 renderRoomAssignmentForms(window.reservedRooms, booking.check_in_date, booking.check_out_date);
             }
         }

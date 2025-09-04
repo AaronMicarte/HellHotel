@@ -571,8 +571,8 @@ async function displayReservations(data) {
     try {
         const response = await axios.get(`${BASE_URL}/reservations/reservations.php`, {
             params: {
-                operation: "getAllReservations"
-                // Show ALL reservation types (walk-in AND online)
+                operation: "getAllReservations",
+                view: "confirmed"  // Only show confirmed bookings
             }
         });
 
@@ -586,6 +586,210 @@ async function displayReservations(data) {
         console.log("❌ Error response:", error.response?.data); // DEBUG
         showError("Failed to load reservations. Please try again.");
     }
+}
+
+// Helper functions for modern table display
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function formatTime(dateTimeStr) {
+    if (!dateTimeStr) return '';
+    const date = new Date(dateTimeStr);
+    return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+}
+
+function getDaysFromNow(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const today = new Date();
+    const diffTime = date.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    if (diffDays > 0) return `In ${diffDays} days`;
+    return `${Math.abs(diffDays)} days ago`;
+}
+
+function calculateNights(checkIn, checkOut) {
+    if (!checkIn || !checkOut) return 0;
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const diffTime = end.getTime() - start.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+function getStatusBadge(status) {
+    status = (status || '').toLowerCase();
+    let icon = '<i class="fas fa-question-circle text-secondary"></i>';
+    let label = status.charAt(0).toUpperCase() + status.slice(1);
+
+    if (status === 'confirmed') icon = '<i class="fas fa-check-circle text-info"></i>';  // Blue
+    else if (status === 'pending') icon = '<i class="fas fa-hourglass-half text-warning"></i>';
+    else if (status === 'checked-in') icon = '<i class="fas fa-door-open text-success"></i>';  // Green
+    else if (status === 'checked-out') icon = '<i class="fas fa-sign-out-alt text-secondary"></i>';
+    else if (status === 'cancelled') icon = '<i class="fas fa-times-circle text-danger"></i>';
+
+    return `${icon} ${label}`;
+}
+
+function getReservationTypeBadge(type) {
+    const typeLower = (type || '').toLowerCase();
+    if (typeLower === 'online') {
+        return '<small class="text-primary"><i class="fas fa-globe me-1"></i>Online</small>';
+    } else {
+        return '<small class="text-success"><i class="fas fa-user-tie me-1"></i>Walk-in</small>';
+    }
+}
+
+// Render status flow icons only (no text) in a dedicated column
+function renderStatusFlowIcons(res) {
+    const status = (res.reservation_status || '').toLowerCase();
+    const id = res.reservation_id;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const checkInDate = new Date(res.check_in_date);
+    checkInDate.setHours(0, 0, 0, 0);
+
+    const canCheckIn = today >= checkInDate;
+
+    let actions = [];
+    if (status === 'pending') {
+        actions.push('<i class="fas fa-check-circle text-info cursor-pointer" title="Confirm" onclick="changeStatusFlow(' + id + ', \'confirmed\')" style="cursor:pointer;margin-right:5px;"></i>');
+        actions.push('<i class="fas fa-times-circle text-danger cursor-pointer" title="Cancel" onclick="changeStatusFlow(' + id + ', \'cancelled\')" style="cursor:pointer;margin-right:5px;"></i>');
+    } else if (status === 'confirmed') {
+        if (canCheckIn) {
+            actions.push('<i class="fas fa-sign-in-alt text-success cursor-pointer" title="Check-in" onclick="changeStatusFlow(' + id + ', \'checked-in\')" style="cursor:pointer;margin-right:5px;"></i>');
+        } else {
+            actions.push('<i class="fas fa-sign-in-alt text-muted" title="Check-in not available yet" style="opacity:0.5;margin-right:5px;" onclick="showCheckInNotAvailable(\'' + res.check_in_date + '\')"></i>');
+        }
+        actions.push('<i class="fas fa-times-circle text-danger cursor-pointer" title="Cancel" onclick="changeStatusFlow(' + id + ', \'cancelled\')" style="cursor:pointer;margin-right:5px;"></i>');
+    } else if (status === 'checked-in') {
+        actions.push('<i class="fas fa-sign-out-alt text-primary cursor-pointer" title="Check-out" onclick="changeStatusFlow(' + id + ', \'checked-out\')" style="cursor:pointer;margin-right:5px;"></i>');
+    } else if (status === 'checked-out') {
+        actions.push('<span class="text-success" title="Completed"><i class="fas fa-check-circle"></i></span>');
+    } else if (status === 'cancelled') {
+        actions.push('<span class="text-danger" title="Cancelled"><i class="fas fa-ban"></i></span>');
+    }
+    return actions.length ? actions.join(' ') : '<span class="text-muted">—</span>';
+}
+
+// Status flow change function
+async function changeStatusFlow(reservationId, newStatus) {
+    const statusObj = cachedStatuses.find(s => s.reservation_status.toLowerCase() === newStatus);
+    if (!statusObj) {
+        showError('Invalid status.');
+        return;
+    }
+
+    // Check-in date validation - prevent checking in before the scheduled check-in date
+    if (newStatus === 'checked-in') {
+        // Find reservation from current displayed reservations instead of cached
+        const tbody = document.getElementById("reservationsTableBody");
+        const reservationRow = tbody?.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+        const allReservations = window.cachedReservations || [];
+        const reservation = allReservations.find(r => r.reservation_id == reservationId);
+
+        if (reservation) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const checkInDate = new Date(reservation.check_in_date);
+            checkInDate.setHours(0, 0, 0, 0);
+
+            if (today < checkInDate) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Cannot Check-in Early',
+                    text: `Guest cannot check-in before their scheduled check-in date (${reservation.check_in_date}). Please wait until the check-in date.`,
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+        }
+    }
+
+    // Confirmation dialog
+    let confirmMsg = '';
+    if (newStatus === 'confirmed') confirmMsg = 'Are you sure you want to confirm this reservation?';
+    else if (newStatus === 'checked-in') confirmMsg = 'Check-in this guest and mark room as occupied?';
+    else if (newStatus === 'checked-out') confirmMsg = 'Check-out this guest? This will mark the room as available. Guest must be fully paid.';
+    else if (newStatus === 'cancelled') confirmMsg = 'Cancel this reservation? This will release the room.';
+    else confirmMsg = 'Change status to ' + newStatus + '?';
+
+    const result = await Swal.fire({
+        title: 'Change Reservation Status',
+        text: confirmMsg,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No',
+    });
+
+    if (!result.isConfirmed) return;
+
+    // Call backend
+    try {
+        // Get user ID from auth system correctly
+        let userId = null;
+        if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
+            const user = window.adminAuth.getUser();
+            userId = user ? user.user_id : null;
+        }
+
+        console.log("🔍 Status change debug - Current admin user ID:", userId); // Debug log
+        console.log("🔍 Status change debug - Auth method used: getUser()"); // Debug log
+        console.log("🔍 Status change debug - Reservation ID:", reservationId, "New Status:", newStatus); // Debug log
+
+        const payload = {
+            operation: 'changeReservationStatus',
+            json: JSON.stringify({
+                reservation_id: reservationId,
+                new_status_id: statusObj.reservation_status_id,
+                changed_by_user_id: userId
+            })
+        };
+
+        const formData = new FormData();
+        formData.append('operation', payload.operation);
+        formData.append('json', payload.json);
+
+        const apiRes = await axios.post(`${BASE_URL}/reservations/reservation_status.php`, formData);
+
+        if (apiRes.data && apiRes.data.success) {
+            showSuccess(apiRes.data.message || 'Status updated!');
+            displayReservations();
+        } else {
+            showError(apiRes.data && apiRes.data.message ? apiRes.data.message : 'Failed to update status.');
+        }
+    } catch (err) {
+        showError('Failed to update status.');
+    }
+}
+
+// Show check-in not available message
+function showCheckInNotAvailable(checkInDate) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Check-in Not Available',
+        text: `Available from ${checkInDate}`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+    });
 }
 
 function displayReservationsTable(reservations) {
@@ -603,19 +807,19 @@ function displayReservationsTable(reservations) {
     // Check if reservations is null, undefined, or not an array
     if (!reservations) {
         console.log("⚠️ Reservations is null or undefined");
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center">No reservations data received.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center">No reservations data received.</td></tr>`;
         return;
     }
 
     if (!Array.isArray(reservations)) {
         console.log("⚠️ Reservations is not an array, type:", typeof reservations);
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center">Invalid reservations data format.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center">Invalid reservations data format.</td></tr>`;
         return;
     }
 
     if (!reservations.length) {
         console.log("⚠️ Reservations array is empty");
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center">No reservations found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center">No reservations found.</td></tr>`;
         return;
     }
 
@@ -635,7 +839,7 @@ function displayReservationsTable(reservations) {
     updateReservationStatsOverview(filteredReservations);
 
     if (!filteredReservations.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center">No reservations found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center">No reservations found.</td></tr>`;
         return;
     }
 
@@ -647,423 +851,445 @@ function displayReservationsTable(reservations) {
     }
 
 
-    filteredReservations.forEach((res, index) => {
-        // Overdue logic: if not checked out/cancelled and today > check_out_date
-        let status = (res.reservation_status || res.room_status || 'pending').toLowerCase();
-        let isOverdue = false;
-        if (status !== 'checked-out' && status !== 'cancelled' && res.check_out_date) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const outDate = new Date(res.check_out_date);
-            outDate.setHours(0, 0, 0, 0);
-            if (today > outDate) isOverdue = true;
-        }
-        // Format check-in and check-out time to 12-hour format with AM/PM
-        function format12Hour(timeStr) {
-            if (!timeStr) return "";
-            const [h, m] = timeStr.split(":");
-            let hour = parseInt(h, 10);
-            const minute = m ? m.padStart(2, "0") : "00";
-            const ampm = hour >= 12 ? "PM" : "AM";
-            hour = hour % 12;
-            if (hour === 0) hour = 12;
-            return `${hour}:${minute} ${ampm}`;
-        }
+    // Render table rows with modern design (matching online-bookings style)
+    tbody.innerHTML = filteredReservations.map(booking => {
+        const statusDisplay = getStatusBadge(booking.reservation_status);
+        const typeBadge = getReservationTypeBadge(booking.reservation_type);
+        const assignedRooms = booking.rooms_summary || 'Not Assigned';
+        const isAssigned = booking.all_room_numbers && booking.all_room_numbers.trim() !== '';
+        const guestName = booking.guest_name || `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || 'Unknown Guest';
 
-        const checkInTime12 = res.check_in_time ? format12Hour(res.check_in_time) : "";
-        const checkOutTime12 = res.check_out_time ? format12Hour(res.check_out_time) : "";
-
-        const tr = document.createElement("tr");
-        // Find which room the main guest was assigned to
-        let mainGuestRoom = '';
-        if (res.reservation_id && res.guest_id) {
-            // Try to find from reserved_rooms API
-            mainGuestRoom = '';
-            if (window.cachedReservedRooms && Array.isArray(window.cachedReservedRooms)) {
-                const mainRoom = window.cachedReservedRooms.find(r => String(r.reservation_id) === String(res.reservation_id) && String(r.guest_id) === String(res.guest_id));
-                if (mainRoom) mainGuestRoom = `${mainRoom.type_name || ''}${mainRoom.type_name && mainRoom.room_number ? ' ' : ''}${mainRoom.room_number || ''}`;
+        return `
+            <tr data-reservation-id="${booking.reservation_id}">
+                <td>
+                    <strong>#${booking.reservation_id}</strong>
+                    <br>
+                    ${typeBadge}
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <strong>${guestName}</strong>
+                            <br>
+                            <small class="text-muted">ID: ${booking.guest_id || 'N/A'}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <strong>${formatDate(booking.check_in_date)}</strong>
+                    <br>
+                    <small class="text-muted">${getDaysFromNow(booking.check_in_date)}</small>
+                </td>
+                <td>
+                    <strong>${formatDate(booking.check_out_date)}</strong>
+                    <br>
+                    <small class="text-muted">${calculateNights(booking.check_in_date, booking.check_out_date)} night(s)</small>
+                </td>
+                <td>
+                    <div class="assigned-rooms">
+                        ${isAssigned ?
+                `<span class="text-success"><i class="fas fa-check-circle me-1"></i>${assignedRooms}</span>` :
+                `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Not Assigned</span>`
             }
-        }
-        // Render status flow icons only (no text) in a dedicated column
-        function renderStatusFlowIcons(res) {
-            const status = (res.reservation_status || '').toLowerCase();
-            const id = res.reservation_id;
-            let actions = [];
-            if (status === 'pending') {
-                actions.push({ icon: 'fa-check-circle', color: 'text-info', label: 'Confirm', next: 'confirmed' });
-                actions.push({ icon: 'fa-times-circle', color: 'text-danger', label: 'Cancel', next: 'cancelled' });
-            } else if (status === 'confirmed') {
-                actions.push({ icon: 'fa-door-open', color: 'text-success', label: 'Check-in', next: 'checked-in' });
-                actions.push({ icon: 'fa-times-circle', color: 'text-danger', label: 'Cancel', next: 'cancelled' });
-            } else if (status === 'checked-in') {
-                actions.push({ icon: 'fa-sign-out-alt', color: 'text-primary', label: 'Check-out', next: 'checked-out' });
-            }
-            return actions.map(a =>
-                `<i class="fas ${a.icon} action-icon ${a.color}" style="cursor:pointer; margin-left:8px" title="${a.label}" data-action="status-${a.next}" data-id="${id}"></i>`
-            ).join('');
-        }
-        tr.innerHTML = `
-        <td>${res.reservation_id || 'N/A'}</td>
-        <td>${res.guest_name || (res.first_name && res.last_name ? res.first_name + ' ' + res.last_name : 'No Name')}</td>
-        <td>${res.rooms_summary || 'No Room'}${mainGuestRoom ? `<br><span class='badge bg-success mt-1'>Main Guest: ${mainGuestRoom}</span>` : ''}</td>
-        <td>${res.check_in_date || 'N/A'}${checkInTime12 ? " " + checkInTime12 : ""}</td>
-        <td>${res.check_out_date || 'N/A'}${checkOutTime12 ? " " + checkOutTime12 : ""}</td>
-                                        <td>
-                                            ${res.reservation_type === 'online' ?
-                `<span class='badge' style='background-color: #007bff; color: white;'>Online</span>` :
-                `<span class='badge' style='background-color: orange; color: white;'>Walk-in</span>`
-            }
-                                        </td>
-        <td>${isOverdue ? `<span class='text-danger fw-bold'><i class='fas fa-exclamation-circle'></i> Overdue</span>` : getStatusBadge(res.reservation_status || res.room_status || 'pending')}</td>
-        <td class="status-flow-col">${renderStatusFlowIcons(res)}</td>
-        <td>
-            <i class="fas fa-user-edit action-icon" style="color: purple; cursor:pointer; margin-right:10px" data-action="change-booker" data-id="${res.reservation_id}" title="Change Booker"></i>
-            <i class="fas fa-eye action-icon text-info" data-action="view" data-id="${res.reservation_id}" title="View Details" style="cursor:pointer; margin-right:10px"></i>
-            ${(res.all_room_numbers && res.all_room_numbers.trim() !== '') || res.reservation_status !== 'pending' ?
-                `<i class="fas fa-history action-icon text-secondary" data-action="history" data-id="${res.reservation_id}" title="View Reservation History" style="cursor:pointer; margin-right:10px"></i>` :
-                `<i class="fas fa-history action-icon text-muted" title="History available after room assignment" style="cursor:not-allowed; margin-right:10px; opacity:0.5"></i>`
-            }
-            <i class="fas fa-edit action-icon text-primary" data-action="edit" data-id="${res.reservation_id}" title="Edit" style="cursor:pointer; margin-right:10px"></i>
-            <i class="fas fa-trash action-icon text-primary" data-action="delete" data-id="${res.reservation_id}" title="Delete" style="cursor:pointer;"></i>
-        </td>
+                    </div>
+                </td>
+                <td>${statusDisplay}</td>
+                <td class="status-flow-col">${renderStatusFlowIcons(booking)}</td>
+                <td>
+                    <strong>${formatDate(booking.latest_activity || booking.created_at)}</strong>
+                    <br>
+                    <small class="text-muted">${formatTime(booking.latest_activity || booking.created_at)}</small>
+                </td>
+                <td>
+                    <i class="fas fa-eye action-icon text-info" onclick="viewBookingDetails(${booking.reservation_id})" title="View Full Details" style="cursor:pointer; margin-right:10px"></i>
+                    <i class="fas fa-history action-icon text-secondary" onclick="viewReservationHistory(${booking.reservation_id})" title="View Reservation History" style="cursor:pointer; margin-right:10px"></i>
+                </td>
+            </tr>
         `;
-        // Status flow icons (Confirm, Check-in, Check-out, Cancel) event listeners
-        const statusFlowIcons = tr.querySelectorAll('.status-flow-col .action-icon[data-action^="status-"]');
-        statusFlowIcons.forEach(icon => {
-            icon.addEventListener('click', async function () {
-                const action = this.getAttribute('data-action');
-                const nextStatus = action.replace('status-', '');
-                const statusObj = cachedStatuses.find(s => s.reservation_status.toLowerCase() === nextStatus);
-                if (!statusObj) {
-                    showError('Invalid status.');
-                    return;
-                }
-                // Confirmation dialog
-                let confirmMsg = '';
-                if (nextStatus === 'confirmed') confirmMsg = 'Are you sure you want to confirm this reservation?';
-                else if (nextStatus === 'checked-in') confirmMsg = 'Check-in this guest and mark room as occupied?';
-                else if (nextStatus === 'checked-out') confirmMsg = 'Check-out this guest? This will mark the room as available. Guest must be fully paid.';
-                else if (nextStatus === 'cancelled') confirmMsg = 'Cancel this reservation? This will release the room.';
-                else confirmMsg = 'Change status to ' + nextStatus + '?';
-                const result = await Swal.fire({
-                    title: 'Change Reservation Status',
-                    text: confirmMsg,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes',
-                    cancelButtonText: 'No',
-                });
-                if (!result.isConfirmed) return;
-                // Call backend
-                try {
-                    const payload = {
-                        operation: 'changeReservationStatus',
-                        json: JSON.stringify({
-                            reservation_id: res.reservation_id,
-                            new_status_id: statusObj.reservation_status_id,
-                            changed_by_user_id: res.user_id || null
-                        })
-                    };
-                    const formData = new FormData();
-                    formData.append('operation', payload.operation);
-                    formData.append('json', payload.json);
-                    const apiRes = await axios.post(`${BASE_URL}/reservations/reservation_status.php`, formData);
-                    if (apiRes.data && apiRes.data.success) {
-                        showSuccess(apiRes.data.message || 'Status updated!');
-                        displayReservations();
-                    } else {
-                        showError(apiRes.data && apiRes.data.message ? apiRes.data.message : 'Failed to update status.');
-                    }
-                } catch (err) {
-                    showError('Failed to update status.');
-                }
-            });
-        });
-        tbody.appendChild(tr);
+    }).join('');
 
-        // Change Booker
-        const changeBookerIcon = tr.querySelector('.fa-user-edit[data-action="change-booker"]');
-        if (changeBookerIcon) {
-            changeBookerIcon.addEventListener("click", async () => {
-                // Fetch companions and main guest for this reservation
-                let people = [];
-                try {
-                    const resPeople = await axios.get(`${BASE_URL}/reservations/companions_for_reservation.php?reservation_id=${res.reservation_id}`);
-                    people = Array.isArray(resPeople.data) ? resPeople.data : [];
-                } catch {
-                    people = [];
-                }
-                // Build select dropdown
-                const options = people.map(p => {
-                    if (p.type === 'main_guest') {
-                        return `<option value=\"guest_${p.guest_id}\" ${p.guest_id == res.guest_id ? 'selected' : ''}>${p.full_name} (Main Guest)${p.email ? ' (' + p.email + ')' : ''}</option>`;
-                    } else {
-                        return `<option value=\"companion_${p.companion_id}\">${p.full_name} (Companion)</option>`;
-                    }
-                }).join("");
-                const html = `<div class='mb-2'>Select new booker for reservation #${res.reservation_id}:</div><select id='swalChangeBookerSelect' class='form-select'>${options}</select>`;
-                const { value: confirmed } = await Swal.fire({
-                    title: 'Change Main Booker',
-                    html: html,
-                    showCancelButton: true,
-                    confirmButtonText: 'Change Booker',
-                    cancelButtonText: 'Cancel',
-                    preConfirm: () => {
-                        const select = document.getElementById('swalChangeBookerSelect');
-                        return select ? select.value : null;
-                    }
-                });
-                if (confirmed) {
-                    if (confirmed.startsWith('guest_')) {
-                        // Main guest selected
-                        const new_guest_id = confirmed.replace('guest_', '');
-                        if (new_guest_id != res.guest_id) {
-                            try {
-                                const payload = { reservation_id: res.reservation_id, new_guest_id: new_guest_id };
-                                const apiRes = await axios.post(`${BASE_URL}/reservations/change_booker.php`, payload);
-                                if (apiRes.data && apiRes.data.success) {
-                                    showSuccess('Booker changed successfully!');
-                                    displayReservations();
-                                } else {
-                                    showError(apiRes.data && apiRes.data.message ? apiRes.data.message : 'Failed to change booker.');
-                                }
-                            } catch (err) {
-                                showError('Failed to change booker.');
-                            }
-                        }
-                    } else if (confirmed.startsWith('companion_')) {
-                        // Companion selected: prompt for guest info
-                        const companion_id = confirmed.replace('companion_', '');
-                        const companion = people.find(p => p.type === 'companion' && p.companion_id == companion_id);
-                        if (!companion) return;
-                        // Fetch ID types (alphabetically)
-                        let idTypes = [];
-                        try {
-                            const idTypesRes = await axios.get(`${BASE_URL}/guests/id_types.php`, { params: { operation: "getAllIDTypes" } });
-                            idTypes = Array.isArray(idTypesRes.data) ? idTypesRes.data : [];
-                            idTypes.sort((a, b) => a.id_type.localeCompare(b.id_type));
-                        } catch { }
-                        const idTypeOptions = idTypes.map(t => `<option value="${t.id_type}">${t.id_type}</option>`).join('');
-                        // Show modal for guest info (no ID pic)
-                        const { value: guestData } = await Swal.fire({
-                            title: 'Register Companion as Guest',
-                            html: `
-                                <div class='mb-2'><i class='fas fa-user-friends text-info me-1'></i> Fill in required info for <b>${companion.full_name}</b>:</div>
-                                <div class='swal2-input-group' style='display:flex;align-items:center;gap:8px;'>
-                                    <i class='fas fa-user text-primary'></i>
-                                    <input id='swalFirstName' class='swal2-input' placeholder='First Name' value='${companion.full_name.split(' ')[0] || ''}' style='width:100%;'>
-                                </div>
-                                <div class='swal2-input-group' style='display:flex;align-items:center;gap:8px;'>
-                                    <i class='fas fa-user text-primary'></i>
-                                    <input id='swalLastName' class='swal2-input' placeholder='Last Name' value='${companion.full_name.split(' ').slice(1).join(' ')}' style='width:100%;'>
-                                </div>
-                                <div class='swal2-input-group' style='display:flex;align-items:center;gap:8px;'>
-                                    <i class='fas fa-envelope text-info'></i>
-                                    <input id='swalEmail' class='swal2-input' placeholder='Email' style='width:100%;'>
-                                </div>
-                                <div class='swal2-input-group' style='display:flex;align-items:center;gap:8px;'>
-                                    <i class='fas fa-phone text-success'></i>
-                                    <input id='swalPhone' class='swal2-input' placeholder='Phone' style='width:100%;'>
-                                </div>
-                                <div class='swal2-input-group' style='display:flex;align-items:center;gap:8px;'>
-                                    <i class='fas fa-calendar-alt text-warning'></i>
-                                    <input id='swalDOB' class='swal2-input' type='date' placeholder='Date of Birth' style='width:100%;'>
-                                </div>
-                                <div class='swal2-input-group' style='display:flex;align-items:center;gap:8px;'>
-                                    <i class='fas fa-id-card text-secondary'></i>
-                                    <input id='swalIDNumber' class='swal2-input' placeholder='ID Number' style='width:100%;'>
-                                </div>
-                                <div class='swal2-input-group' style='display:flex;align-items:center;gap:8px;'>
-                                    <i class='fas fa-id-badge text-secondary'></i>
-                                    <select id='swalIDType' class='swal2-input' style='width:100%;'>
-                                        <option value=''>-- Select ID Type --</option>
-                                        ${idTypeOptions}
-                                    </select>
-                                </div>
-                            `,
-                            focusConfirm: false,
-                            showCancelButton: true,
-                            confirmButtonText: 'Register & Assign',
-                            cancelButtonText: 'Cancel',
-                            preConfirm: () => {
-                                // Map id_type to guest_idtype_id for backend
-                                const id_type = document.getElementById('swalIDType').value;
-                                let guest_idtype_id = null;
-                                if (id_type && Array.isArray(idTypes)) {
-                                    const found = idTypes.find(t => t.id_type === id_type);
-                                    guest_idtype_id = found ? found.guest_idtype_id : null;
-                                }
-                                return {
-                                    first_name: document.getElementById('swalFirstName').value.trim(),
-                                    last_name: document.getElementById('swalLastName').value.trim(),
-                                    email: document.getElementById('swalEmail').value.trim(),
-                                    phone_number: document.getElementById('swalPhone').value.trim(),
-                                    date_of_birth: document.getElementById('swalDOB').value,
-                                    id_number: document.getElementById('swalIDNumber').value.trim(),
-                                    id_type: id_type,
-                                    guest_idtype_id: guest_idtype_id
-                                };
-                            }
+    // Add status action listeners
+    filteredReservations.forEach(booking => {
+        const tr = document.querySelector(`tr[data-reservation-id="${booking.reservation_id}"]`);
+        if (tr) {
+            // Check-in/check-out status listeners
+            const checkinBtn = tr.querySelector('.fa-sign-in-alt');
+            const checkoutBtn = tr.querySelector('.fa-sign-out-alt');
+
+            if (checkinBtn) {
+                checkinBtn.addEventListener('click', async () => {
+                    // Validate check-in date
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const checkInDate = new Date(booking.check_in_date);
+                    checkInDate.setHours(0, 0, 0, 0);
+
+                    if (today < checkInDate) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Check-in Not Available',
+                            text: `Available from ${booking.check_in_date}`,
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
                         });
-                        if (guestData && guestData.first_name && guestData.last_name && guestData.email && guestData.phone_number && guestData.date_of_birth && guestData.id_number && guestData.id_type) {
-                            // Register guest
-                            try {
-                                const formData = new FormData();
-                                formData.append('operation', 'insertGuest');
-                                formData.append('json', JSON.stringify(guestData));
-                                const guestRes = await axios.post(`${BASE_URL}/guests/guests.php`, formData);
-                                let new_guest_id = null;
-                                if (guestRes.data && typeof guestRes.data === 'object' && guestRes.data.guest_id) {
-                                    new_guest_id = guestRes.data.guest_id;
-                                } else if (guestRes.data && !isNaN(guestRes.data) && Number(guestRes.data) > 0) {
-                                    new_guest_id = guestRes.data;
-                                }
-                                if (new_guest_id) {
-                                    // Mark the companion as deleted in ReservedRoomCompanion
-                                    try {
-                                        await axios.post(`${BASE_URL}/reservations/companions.php`, {
-                                            operation: 'deleteCompanion',
-                                            companion_id: companion_id
-                                        });
-                                    } catch (e) { /* ignore error, just try to hide companion */ }
-                                    // Assign as booker
-                                    const payload = { reservation_id: res.reservation_id, new_guest_id: new_guest_id };
-                                    const apiRes = await axios.post(`${BASE_URL}/reservations/change_booker.php`, payload);
-                                    if (apiRes.data && apiRes.data.success) {
-                                        showSuccess('Booker changed successfully!');
-                                        displayReservations(); // This will refresh the row and dropdown
-                                    } else {
-                                        showError(apiRes.data && apiRes.data.message ? apiRes.data.message : 'Failed to change booker.');
-                                    }
-                                } else {
-                                    showError('Failed to register companion as guest.');
-                                }
-                            } catch (err) {
-                                showError('Failed to register companion as guest.');
-                            }
-                        } else if (guestData) {
-                            showError('Please fill in all required fields.');
-                        }
+                        return;
                     }
-                }
-            });
-        }
 
-        // View (SweetAlert, simplified: only show companions for each assigned room, no details, no room selection)
-        const viewIcon = tr.querySelector('.fa-eye[data-action="view"]');
-        if (viewIcon) {
-            viewIcon.addEventListener('click', async () => {
-                // Fetch reserved rooms for this reservation
-                const rrRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/reservations/reserved_rooms.php', {
-                    params: { operation: 'getAllReservedRooms' }
+                    changeStatus(booking.reservation_id, 'checked-in');
                 });
-                const reservedRooms = Array.isArray(rrRes.data) ? rrRes.data.filter(r => String(r.reservation_id) === String(res.reservation_id) && r.is_deleted == 0) : [];
-                if (reservedRooms.length === 0) {
-                    Swal.fire('No reserved rooms found for this reservation.');
-                    return;
-                }
-                // Sort reservedRooms alphabetically by type_name, then room_number
-                reservedRooms.sort((a, b) => {
-                    const typeA = (a.type_name || '').toLowerCase();
-                    const typeB = (b.type_name || '').toLowerCase();
-                    if (typeA < typeB) return -1;
-                    if (typeA > typeB) return 1;
-                    // If type_name is the same, sort by room_number (as string for consistency)
-                    const numA = String(a.room_number || '');
-                    const numB = String(b.room_number || '');
-                    return numA.localeCompare(numB, undefined, { numeric: true, sensitivity: 'base' });
-                });
-                // Fetch all companions for all reserved rooms in this reservation
-                let allCompanions = [];
-                try {
-                    const compRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/reservations/companions.php', {
-                        params: { operation: 'getAllCompanions' }
-                    });
-                    if (Array.isArray(compRes.data)) {
-                        allCompanions = compRes.data;
-                    }
-                } catch (err) { }
-                // Build HTML for all rooms
-                let html = `<div style='text-align:left;font-size:1.08em;'>`;
-                reservedRooms.forEach((reservedRoom) => {
-                    let companions = allCompanions.filter(c => String(c.reserved_room_id) === String(reservedRoom.reserved_room_id) && c.is_deleted == 0);
-                    html += `<div style=\"background:#fff;border-radius:12px;box-shadow:0 2px 8px #0001;padding:1.2em 1.5em 1.2em 1.5em;margin-bottom:18px;\">`;
-                    html += `<div style='display:flex;align-items:center;gap:12px;margin-bottom:18px;'>`;
-                    html += `<div style='background:#0d6efd1a;border-radius:50%;padding:10px;display:flex;align-items:center;justify-content:center;'><i class='fas fa-bed text-primary' style='font-size:2em;'></i></div>`;
-                    html += `<span style='font-size:1.35em;font-weight:700;letter-spacing:0.5px;'>Room: ${reservedRoom.type_name ? reservedRoom.type_name : ''}${reservedRoom.type_name && reservedRoom.room_number ? ' ' : ''}${reservedRoom.room_number ? reservedRoom.room_number : ''}</span>`;
-                    html += `</div>`;
-                    html += `<div style='margin-top:18px;margin-bottom:6px;'><i class='fas fa-users text-info'></i> <span class='label'>Assigned People</span><br>`;
-                    if (companions.length > 0) {
-                        html += `<div style='display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:6px;'>`;
-                        companions.forEach((c, i) => {
-                            html += `<div style='background:#f1f3f6;border-radius:8px;padding:9px 18px 9px 12px;display:flex;align-items:center;min-width:0;max-width:calc(50% - 18px);flex:1 1 45%;margin-bottom:6px;font-size:1.05em;box-shadow:0 1px 2px #0001;'>`;
-                            html += `<i class='fas fa-user-friends text-secondary me-2' style='margin-right:9px;'></i> <span style='white-space:normal;text-overflow:ellipsis;overflow:hidden;max-width:220px;display:inline-block;font-weight:500;'>${c.full_name}</span>`;
-                            html += `</div>`;
-                        });
-                        html += `</div>`;
-                    } else {
-                        html += `<span class='text-muted'>No companions listed.</span>`;
-                    }
-                    html += `</div>`;
-                    html += `</div>`;
-                });
-                html += `</div>`;
-                Swal.fire({
-                    title: '',
-                    html: html,
-                    showConfirmButton: true,
-                    confirmButtonText: '<i class=\"fas fa-times\"></i> Close',
-                    customClass: {
-                        popup: 'swal2-reservation-details',
-                        htmlContainer: 'swal2-reservation-details-html'
-                    },
-                    background: '#f8f9fa',
-                    width: 600,
-                    showCloseButton: true
-                });
-            });
-        }
+            }
 
-        // Edit
-        const editIcon = tr.querySelector('.fa-edit[data-action="edit"]');
-        if (editIcon) {
-            editIcon.addEventListener("click", () => {
-                // Pass the full reservation object for editing
-                window.currentReservation = res; // for guest_id reference in modal
-                updateReservationModal(res, cachedRoomTypes, cachedStatuses, displayReservations);
-            });
-        }
-        // Delete
-        const deleteIcon = tr.querySelector('.fa-trash[data-action="delete"]');
-        if (deleteIcon) {
-            deleteIcon.addEventListener("click", () => {
-                deleteReservationModal(res.reservation_id, displayReservations);
-            });
-        }
+            if (checkoutBtn) {
+                checkoutBtn.addEventListener('click', () => {
+                    changeStatus(booking.reservation_id, 'checked-out');
+                });
+            }
 
-        // History
-        const historyIcon = tr.querySelector('.fa-history[data-action="history"]');
-        if (historyIcon) {
-            historyIcon.addEventListener("click", () => {
-                viewReservationHistory(res.reservation_id);
-            });
+            // Edit and cancel listeners
+            const editBtn = tr.querySelector('.fa-edit');
+            const cancelBtn = tr.querySelector('.fa-times');
+
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    window.currentReservation = booking;
+                    updateReservationModal(booking, cachedRoomTypes, cachedStatuses, displayReservations);
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    changeStatus(booking.reservation_id, 'cancelled');
+                });
+            }
         }
-        // Remove check-in/check-out icons and logic
     });
 
-    console.log("✅ Successfully rendered", reservations.length, "reservations"); // DEBUG
+    console.log("✅ Successfully rendered", filteredReservations.length, "reservations");
 }
 
-function getStatusBadge(status) {
-    status = (status || '').toLowerCase();
-    let icon = '<i class="fas fa-question-circle text-secondary"></i>';
-    let label = status.charAt(0).toUpperCase() + status.slice(1);
-    if (status === 'confirmed') icon = '<i class="fas fa-check-circle text-info"></i>';
-    else if (status === 'pending') icon = '<i class="fas fa-hourglass-half text-warning"></i>';
-    else if (status === 'checked-in') icon = '<i class="fas fa-door-open text-success"></i>';
-    else if (status === 'checked-out') icon = '<i class="fas fa-sign-out-alt text-primary"></i>';
-    else if (status === 'cancelled') icon = '<i class="fas fa-times-circle text-danger"></i>';
-    return `${icon} ${label}`;
+// Render status action buttons based on reservation status
+function renderStatusActions(booking) {
+    const status = (booking.reservation_status || '').toLowerCase();
+    let actions = '';
+
+    // Check-in date validation for confirmed bookings
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkInDate = new Date(booking.check_in_date);
+    checkInDate.setHours(0, 0, 0, 0);
+    const canCheckIn = today >= checkInDate;
+
+    if (status === 'confirmed') {
+        if (canCheckIn) {
+            actions += `<i class="fas fa-sign-in-alt action-icon text-success" title="Check In" style="cursor:pointer; margin-right:10px"></i>`;
+        }
+    } else if (status === 'checked-in') {
+        actions += `<i class="fas fa-sign-out-alt action-icon text-primary" title="Check Out" style="cursor:pointer; margin-right:10px"></i>`;
+    }
+
+    if (status !== 'cancelled' && status !== 'checked-out') {
+        actions += `<i class="fas fa-edit action-icon text-warning" title="Edit Reservation" style="cursor:pointer; margin-right:10px"></i>`;
+        actions += `<i class="fas fa-times action-icon text-danger" title="Cancel Reservation" style="cursor:pointer;"></i>`;
+    }
+
+    return actions;
+}
+
+// Status change function for confirmed bookings
+async function changeStatus(reservationId, newStatus) {
+    const statusObj = cachedStatuses.find(s => s.reservation_status.toLowerCase() === newStatus);
+    if (!statusObj) {
+        showError('Invalid status.');
+        return;
+    }
+
+    // Confirmation dialog
+    let confirmMsg = '';
+    if (newStatus === 'checked-in') confirmMsg = 'Check-in this guest and mark room as occupied?';
+    else if (newStatus === 'checked-out') confirmMsg = 'Check-out this guest? This will mark the room as available.';
+    else if (newStatus === 'cancelled') confirmMsg = 'Cancel this reservation? This will release the room.';
+    else confirmMsg = 'Change status to ' + newStatus + '?';
+
+    const result = await Swal.fire({
+        title: 'Change Reservation Status',
+        text: confirmMsg,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        // Get user ID from auth system correctly
+        let userId = null;
+        if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
+            const user = window.adminAuth.getUser();
+            userId = user ? user.user_id : null;
+        }
+
+        const payload = {
+            operation: 'changeReservationStatus',
+            json: JSON.stringify({
+                reservation_id: reservationId,
+                new_status_id: statusObj.reservation_status_id,
+                changed_by_user_id: userId
+            })
+        };
+
+        console.log("🔍 changeStatus debug - User ID:", userId); // Debug log
+        console.log("🔍 changeStatus debug - Full payload:", payload); // Debug log
+
+        const formData = new FormData();
+        formData.append('operation', payload.operation);
+        formData.append('json', payload.json);
+
+        const apiRes = await axios.post(`${BASE_URL}/reservations/reservation_status.php`, formData);
+
+        if (apiRes.data && apiRes.data.success) {
+            showSuccess(apiRes.data.message || 'Status updated!');
+            displayReservations();
+        } else {
+            showError(apiRes.data && apiRes.data.message ? apiRes.data.message : 'Failed to update status.');
+        }
+    } catch (err) {
+        showError('Failed to update status.');
+    }
+}
+
+// Enhanced view booking details with payment info and proof
+async function viewBookingDetails(reservationId) {
+    try {
+        // Fetch reservation details
+        const reservationResponse = await axios.get(`${BASE_URL}/reservations/reservations.php`, {
+            params: { operation: 'getAllReservations' }
+        });
+
+        const reservation = reservationResponse.data.find(r => String(r.reservation_id) === String(reservationId));
+        if (!reservation) {
+            Swal.fire('Error', 'Reservation not found', 'error');
+            return;
+        }
+
+        // Fetch reserved rooms with proper sorting
+        const roomsResponse = await axios.get(`${BASE_URL}/reservations/reserved_rooms.php`, {
+            params: { operation: 'getAllReservedRooms' }
+        });
+        const reservedRooms = Array.isArray(roomsResponse.data) ?
+            roomsResponse.data
+                .filter(r => String(r.reservation_id) === String(reservationId) && r.is_deleted == 0)
+                .sort((a, b) => {
+                    // Sort by creation order (ID or created_at) - first created = main guest room
+                    if (a.reserved_room_id && b.reserved_room_id) {
+                        return parseInt(a.reserved_room_id) - parseInt(b.reserved_room_id);
+                    }
+                    if (a.created_at && b.created_at) {
+                        return new Date(a.created_at) - new Date(b.created_at);
+                    }
+                    return 0;
+                }) : [];
+
+        console.log("Reserved rooms after sorting:", reservedRooms); // Debug log
+
+        // Fetch room types to get pricing information
+        let roomTypes = [];
+        try {
+            const roomTypesResponse = await axios.get(`${BASE_URL}/rooms/room-type.php`, {
+                params: { operation: 'getAllRoomTypes' }
+            });
+            if (Array.isArray(roomTypesResponse.data)) {
+                roomTypes = roomTypesResponse.data;
+                console.log("Room types loaded:", roomTypes.length); // Debug log
+            }
+        } catch (err) {
+            console.error("Error fetching room types:", err);
+        }
+
+        // Calculate nights for subtotal calculation
+        const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+
+        // Fetch companions
+        let allCompanions = [];
+        try {
+            const compRes = await axios.get(`${BASE_URL}/reservations/companions.php`, {
+                params: { operation: 'getAllCompanions' }
+            });
+            if (Array.isArray(compRes.data)) {
+                allCompanions = compRes.data;
+            }
+        } catch (err) { }
+
+        // Fetch payment details with better error handling
+        let paymentInfo = null;
+        let paymentMethodName = 'N/A';
+        try {
+            const paymentResponse = await axios.get(`${BASE_URL}/payments/payments.php`, {
+                params: {
+                    operation: 'getPaymentsByReservation',
+                    reservation_id: reservationId
+                }
+            });
+            console.log("Payment response:", paymentResponse.data); // Debug log
+            if (Array.isArray(paymentResponse.data) && paymentResponse.data.length > 0) {
+                paymentInfo = paymentResponse.data[0]; // Get first payment
+                console.log("Payment info:", paymentInfo); // Debug log
+
+                // The API already returns sub_method_name, so just use it
+                paymentMethodName = paymentInfo.sub_method_name || 'N/A';
+                console.log("Payment method name:", paymentMethodName); // Debug log
+            }
+        } catch (err) {
+            console.error("Payment fetch error:", err);
+        }        // Build enhanced modal HTML
+        let html = `
+            <div style='text-align:left;'>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-info-circle text-primary"></i> Booking Information</h5>
+                        <table class="table table-sm table-borderless">
+                            <tr><td><strong>Booking ID:</strong></td><td>#${reservation.reservation_id}</td></tr>
+                            <tr><td><strong>Type:</strong></td><td>${getReservationTypeBadge(reservation.reservation_type)}</td></tr>
+                            <tr><td><strong>Status:</strong></td><td>${getStatusBadge(reservation.reservation_status)}</td></tr>
+                            <tr><td><strong>Guest:</strong></td><td>${reservation.guest_name || 'N/A'}</td></tr>
+                            <tr><td><strong>Check-in:</strong></td><td>${formatDate(reservation.check_in_date)}</td></tr>
+                            <tr><td><strong>Check-out:</strong></td><td>${formatDate(reservation.check_out_date)}</td></tr>
+                            <tr><td><strong>Nights:</strong></td><td>${calculateNights(reservation.check_in_date, reservation.check_out_date)}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-credit-card text-success"></i> Payment Information</h5>
+                        ${paymentInfo ? `
+                            <table class="table table-sm table-borderless">
+                                <tr><td><strong>Method:</strong></td><td>${paymentMethodName}</td></tr>
+                                <tr><td><strong>Amount:</strong></td><td>₱${parseFloat(paymentInfo.amount_paid || 0).toLocaleString()}</td></tr>
+                                <tr><td><strong>Reference:</strong></td><td>${paymentInfo.reference_number || 'N/A'}</td></tr>
+                                <tr><td><strong>Date:</strong></td><td>${formatDate(paymentInfo.payment_date)}</td></tr>
+                                ${paymentInfo.proof_of_payment_url ? `
+                                    <tr><td><strong>Proof:</strong></td><td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewProofOfPayment('${paymentInfo.proof_of_payment_url}')">
+                                            <i class="fas fa-image"></i> View Proof
+                                        </button>
+                                    </td></tr>
+                                ` : ''}
+                            </table>
+                        ` : '<p class="text-muted">No payment information available</p>'}
+                    </div>
+                </div>
+                
+                <h5><i class="fas fa-bed text-info"></i> Room Assignments</h5>
+        `;
+
+        if (reservedRooms.length === 0) {
+            html += '<p class="text-muted">No rooms assigned</p>';
+        } else {
+            const mainGuestName = reservation.guest_name || (reservation.first_name && reservation.last_name ? `${reservation.first_name} ${reservation.last_name}` : 'Main Guest');
+            const mainGuestRoomIndex = 0; // First room is main guest's room
+
+            reservedRooms.forEach((room, index) => {
+                const companions = allCompanions.filter(c => String(c.reserved_room_id) === String(room.reserved_room_id) && c.is_deleted == 0);
+                const isMainGuestRoom = index === mainGuestRoomIndex;
+
+                // Get room type pricing information
+                const roomType = roomTypes.find(rt => rt.room_type_id == room.room_type_id);
+                const ratePerNight = roomType ? parseFloat(roomType.price_per_stay || 0) : 0;
+                const subtotal = ratePerNight * nights;
+
+                console.log(`Room ${index}:`, room); // Debug log
+                console.log(`Room Type:`, roomType); // Debug log
+                console.log(`Rate: ${ratePerNight}, Nights: ${nights}, Subtotal: ${subtotal}`); // Debug log
+
+                html += `
+                    <div class="card mb-3 ${isMainGuestRoom ? 'border-primary' : ''}">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-bed text-primary me-2"></i>
+                                <h6 class="mb-0">
+                                    Room ${room.room_number} - ${room.type_name}
+                                    ${isMainGuestRoom ? '<span class="badge bg-primary ms-2">Main Guest</span>' : ''}
+                                </h6>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">Rate:</small> ₱${ratePerNight.toLocaleString()}/night<br>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Guests:</strong><br>
+                                    ${isMainGuestRoom ? `<span class="text-primary">${mainGuestName} (Booker)</span><br>` : ''}
+                                    ${companions.map(c => `<span class="text-muted">${c.full_name}</span>`).join('<br>') || ''}
+                                    ${!isMainGuestRoom && companions.length === 0 ? '<span class="text-muted">No guests assigned</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        html += '</div>';
+
+        Swal.fire({
+            title: `<i class="fas fa-eye"></i> Booking Details`,
+            html: html,
+            showConfirmButton: true,
+            confirmButtonText: '<i class="fas fa-times"></i> Close',
+            customClass: {
+                popup: 'swal2-reservation-details',
+                htmlContainer: 'swal2-reservation-details-html'
+            },
+            background: '#f8f9fa',
+            width: 800,
+            showCloseButton: true
+        });
+
+    } catch (error) {
+        console.error('Error fetching booking details:', error);
+        Swal.fire('Error', 'Failed to load booking details', 'error');
+    }
+}
+
+// Function to view proof of payment
+function viewProofOfPayment(imageUrl) {
+    if (!imageUrl) {
+        Swal.fire('No Image', 'No proof of payment image available.', 'info');
+        return;
+    }
+
+    // Construct full path if needed
+    let fullImageUrl = imageUrl;
+    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/Hotel-Reservation-Billing-System/')) {
+        // If it's a relative path, prepend the base path
+        fullImageUrl = `/Hotel-Reservation-Billing-System/${imageUrl}`;
+    }
+
+    console.log("Original image URL:", imageUrl);
+    console.log("Full image URL:", fullImageUrl);
+
+    Swal.fire({
+        title: 'Proof of Payment',
+        imageUrl: fullImageUrl,
+        imageWidth: 600,
+        imageHeight: 400,
+        imageAlt: 'Proof of Payment',
+        showConfirmButton: true,
+        confirmButtonText: 'Close',
+        showCloseButton: true,
+        imageClass: 'img-fluid',
+        customClass: {
+            image: 'proof-payment-image'
+        },
+        didOpen: () => {
+            // Add error handling for failed image loads
+            const img = document.querySelector('.swal2-image');
+            if (img) {
+                img.onerror = () => {
+                    Swal.fire('Error', 'Failed to load proof of payment image. Please check if the file exists.', 'error');
+                };
+            }
+        }
+    });
 }
 
 // ==========================
@@ -1391,6 +1617,12 @@ async function loadStatuses() {
                 option.textContent = status.reservation_status;
                 select.appendChild(option);
             });
+
+            // Set default to "confirmed" for walk-in reservations
+            const confirmedStatus = cachedStatuses.find(s => s.reservation_status.toLowerCase() === 'confirmed');
+            if (confirmedStatus) {
+                select.value = confirmedStatus.reservation_status_id;
+            }
         } else {
             throw new Error("Invalid response format from reservation_status.php");
         }
@@ -1593,15 +1825,9 @@ async function saveReservation() {
 
     // Build rooms array for API
     const roomsPayload = window.multiRoomData.map((room, idx) => {
+        // Use companions as-is, don't add main guest to companions list
         let companions = [...room.companions];
-        if (idx === 0) {
-            // Only for the first room, add the main guest as the first companion
-            companions = [
-                `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}${suffix ? ' ' + suffix : ''}`,
-                ...companions
-            ];
-        }
-        // For other rooms, do not add the main guest
+
         return {
             room_type_id: room.room_type_id,
             room_id: room.room_id,
@@ -1610,7 +1836,15 @@ async function saveReservation() {
         };
     });
 
+    // Get user ID from auth system correctly
+    let userId = null;
+    if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
+        const user = window.adminAuth.getUser();
+        userId = user ? user.user_id : null;
+    }
+
     const jsonData = {
+        user_id: userId, // Add user_id for walk-in reservations
         guest_id: guestId,
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
@@ -1915,3 +2149,10 @@ function displayReservationHistory(reservationId, history) {
         }
     });
 }
+
+// Make functions globally accessible for onclick handlers
+window.viewBookingDetails = viewBookingDetails;
+window.viewReservationHistory = viewReservationHistory;
+window.changeStatusFlow = changeStatusFlow;
+window.showCheckInNotAvailable = showCheckInNotAvailable;
+window.viewProofOfPayment = viewProofOfPayment;

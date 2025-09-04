@@ -40,3 +40,10 @@
 2025-09-04T13:07:12+02:00 insertOnHoldPayment payload: {"reservation_id":"137","billing_id":"105","sub_method_id":"1","amount_paid":99.5,"payment_date":"2025-09-04","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
 2025-09-04T13:07:12+02:00 File uploaded: assets/images/payment/1756984032_rebisco-sandwich-choco.jpg
 2025-09-04T13:07:12+02:00 Payment inserted successfully with ID: 101
+2025-09-04T15:50:46+02:00 insertOnHoldPayment payload: {"reservation_id":"141","billing_id":"106","sub_method_id":"1","amount_paid":249,"payment_date":"2025-09-04","reference_number":"123123","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T15:50:46+02:00 File uploaded: assets/images/payment/1756993846_towel.jpg
+2025-09-04T15:50:46+02:00 Payment inserted successfully with ID: 102
+2025-09-04T17:58:12+02:00 insertPayment payload: {"user_id":7,"billing_id":"109","reservation_id":"144","sub_method_id":6,"amount_paid":"249","payment_date":"2025-09-04 23:58:12","notes":"Paid","reference_number":null}
+2025-09-04T18:24:04+02:00 insertOnHoldPayment payload: {"reservation_id":"145","billing_id":"110","sub_method_id":"1","amount_paid":199,"payment_date":"2025-09-04","reference_number":"123123123123","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T18:24:04+02:00 File uploaded: assets/images/payment/1757003044_redhorse.jpg
+2025-09-04T18:24:05+02:00 Payment inserted successfully with ID: 107

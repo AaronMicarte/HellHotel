@@ -13,6 +13,7 @@ class Reservation
         // Get query parameters
         $statusFilter = isset($_GET['status']) ? $_GET['status'] : null;
         $typeFilter = isset($_GET['type']) ? $_GET['type'] : null;
+        $viewFilter = isset($_GET['view']) ? $_GET['view'] : null;
         $dateFrom = isset($_GET['dateFrom']) ? $_GET['dateFrom'] : null;
         $dateTo = isset($_GET['dateTo']) ? $_GET['dateTo'] : null;
         $search = isset($_GET['search']) ? $_GET['search'] : null;
@@ -29,7 +30,8 @@ class Reservation
                requested_rt.type_name AS requested_room_type,
                u.username AS created_by_username,
                u.user_id AS created_by_user_id,
-               ur.role_type AS created_by_role
+               ur.role_type AS created_by_role,
+               COALESCE(latest_status.changed_at, res.updated_at, res.created_at) AS latest_activity
         FROM Reservation res
         LEFT JOIN Guest g ON res.guest_id = g.guest_id
         LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
@@ -39,11 +41,24 @@ class Reservation
         LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id
         LEFT JOIN User u ON res.user_id = u.user_id
         LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id
-        WHERE res.is_deleted = 0
-        AND NOT (res.reservation_type = 'online' AND rs.reservation_status = 'pending')";
+        LEFT JOIN (
+            SELECT reservation_id, MAX(changed_at) as changed_at 
+            FROM ReservationStatusHistory 
+            GROUP BY reservation_id
+        ) latest_status ON res.reservation_id = latest_status.reservation_id
+        WHERE res.is_deleted = 0";
 
         // Apply filters
         $params = array();
+
+        // View-based filtering
+        if ($viewFilter === 'confirmed') {
+            // Show all operational statuses (not pending)
+            $sql .= " AND rs.reservation_status IN ('confirmed', 'checked-in', 'checked-out', 'cancelled')";
+        } elseif ($viewFilter === 'pending') {
+            $sql .= " AND rs.reservation_status = 'pending'";
+        }
+
         if ($statusFilter) {
             $sql .= " AND rs.reservation_status = :status";
             $params[':status'] = $statusFilter;
@@ -67,7 +82,7 @@ class Reservation
             $params[':search'] = "%$search%";
         }
 
-        $sql .= " GROUP BY res.reservation_id ORDER BY res.reservation_id DESC";
+        $sql .= " GROUP BY res.reservation_id ORDER BY latest_activity DESC";
 
         $stmt = $db->prepare($sql);
         foreach ($params as $key => $value) {
@@ -122,7 +137,15 @@ class Reservation
         }
 
         $userId = isset($json['user_id']) ? $json['user_id'] : null;
-        $reservation_status_id = 1;
+
+        // Set reservation status based on type:
+        // Walk-in reservations by admin should be confirmed by default (status 2)
+        // Online reservations start as pending (status 1)
+        if (isset($json['reservation_status_id']) && is_numeric($json['reservation_status_id'])) {
+            $reservation_status_id = $json['reservation_status_id'];
+        } else {
+            $reservation_status_id = $userId ? 2 : 1; // Admin walk-in = confirmed, online = pending
+        }
 
         // Set reservation_type based on the source:
         // 1. Use explicit reservation_type from payload if provided
@@ -358,8 +381,8 @@ class Reservation
                 }
             }
 
-            // --- AUTO BILLING: ONLY FOR CONFIRMED/ADMIN BOOKINGS ---
-            if ($reservation_type !== 'online' && $reservation_status_id != 1) {
+            // --- AUTO BILLING: FOR WALK-IN/ADMIN BOOKINGS (not pending online bookings) ---
+            if ($reservation_type === 'walk-in' || ($reservation_type !== 'online' && $reservation_status_id != 1)) {
                 // Only insert billing if one does not already exist for this reservation
                 $sqlCheckBill = "SELECT COUNT(*) FROM Billing WHERE reservation_id = :reservation_id AND is_deleted = 0";
                 $stmtCheckBill = $db->prepare($sqlCheckBill);

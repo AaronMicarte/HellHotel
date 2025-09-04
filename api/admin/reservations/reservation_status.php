@@ -47,8 +47,15 @@ class ReservationStatus
         $new_status_id = $json['new_status_id'];
         $changed_by_user_id = isset($json['changed_by_user_id']) ? $json['changed_by_user_id'] : null;
 
+        // Debug logging
+        error_log("🔍 changeReservationStatus DEBUG - Reservation ID: $reservation_id, Status ID: $new_status_id, User ID: $changed_by_user_id");
+        error_log("🔍 changeReservationStatus DEBUG - Full JSON: " . json_encode($json));
+
         // Get current reservation and status
-        $sql = "SELECT r.reservation_status_id, rs.reservation_status, r.guest_id, r.user_id FROM Reservation r JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
+        $sql = "SELECT r.reservation_status_id, rs.reservation_status, r.guest_id, r.user_id, r.check_in_date 
+                FROM Reservation r 
+                JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id 
+                WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":reservation_id", $reservation_id);
         $stmt->execute();
@@ -73,6 +80,20 @@ class ReservationStatus
         }
         $new_status = $new_status_row['reservation_status'];
 
+        // Check-in date validation - prevent checking in before scheduled date
+        if ($new_status === 'checked-in') {
+            $today = date('Y-m-d');
+            $checkInDate = date('Y-m-d', strtotime($reservation['check_in_date']));
+
+            if ($today < $checkInDate) {
+                echo json_encode([
+                    "success" => false,
+                    "message" => "Cannot check-in before the scheduled check-in date ({$checkInDate}). Please wait until the check-in date."
+                ]);
+                return;
+            }
+        }
+
         // Allowed transitions
         $allowed = [
             'pending' => ['confirmed', 'cancelled'],
@@ -88,16 +109,44 @@ class ReservationStatus
 
         // If checking out, ensure bill is paid
         if ($new_status === 'checked-out') {
-            // Get billing status
-            $sql = "SELECT b.billing_status_id, bs.billing_status FROM Billing b JOIN BillingStatus bs ON b.billing_status_id = bs.billing_status_id WHERE b.reservation_id = :reservation_id AND b.is_deleted = 0 ORDER BY b.billing_id DESC LIMIT 1";
+            // Check payment status - first calculate total due, then check if paid amount covers it
+            error_log("🔍 Checkout validation - Checking payment status for reservation $reservation_id");
+
+            // Get room types and calculate total due
+            $sql = "SELECT SUM(rt.price_per_stay) as total_due
+                    FROM ReservedRoom rr 
+                    JOIN Room r ON rr.room_id = r.room_id 
+                    JOIN RoomType rt ON r.room_type_id = rt.room_type_id 
+                    WHERE rr.reservation_id = :reservation_id AND rr.is_deleted = 0";
             $stmt = $db->prepare($sql);
             $stmt->bindParam(":reservation_id", $reservation_id);
             $stmt->execute();
-            $billing = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$billing || $billing['billing_status'] !== 'paid') {
-                echo json_encode(["success" => false, "message" => "Cannot check out: bill is not fully paid."]);
+            $totalDue = $stmt->fetch(PDO::FETCH_ASSOC);
+            $totalDueAmount = $totalDue ? (float)$totalDue['total_due'] : 0;
+
+            // Get total paid amount from Payment table
+            $sql = "SELECT SUM(amount_paid) as total_paid 
+                    FROM Payment 
+                    WHERE reservation_id = :reservation_id AND is_deleted = 0";
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(":reservation_id", $reservation_id);
+            $stmt->execute();
+            $totalPaid = $stmt->fetch(PDO::FETCH_ASSOC);
+            $totalPaidAmount = $totalPaid ? (float)$totalPaid['total_paid'] : 0;
+
+            error_log("🔍 Checkout validation - Total due: $totalDueAmount, Total paid: $totalPaidAmount");
+
+            // Check if fully paid (allow small rounding differences)
+            if ($totalPaidAmount < $totalDueAmount - 0.01) {
+                $remaining = $totalDueAmount - $totalPaidAmount;
+                echo json_encode([
+                    "success" => false,
+                    "message" => "Cannot check out: Outstanding balance of ₱" . number_format($remaining, 2) . ". Total due: ₱" . number_format($totalDueAmount, 2) . ", Paid: ₱" . number_format($totalPaidAmount, 2) . "."
+                ]);
                 return;
             }
+
+            error_log("✅ Checkout validation passed - Payment is complete");
         }
 
         // Update reservation status
@@ -140,12 +189,19 @@ class ReservationStatus
         }
 
         // Log status change
+        error_log("🔍 Logging status change - Reservation: $reservation_id, Status: $new_status_id, User: $changed_by_user_id");
         $sql = "INSERT INTO ReservationStatusHistory (reservation_id, status_id, changed_by_user_id) VALUES (:reservation_id, :status_id, :changed_by_user_id)";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":reservation_id", $reservation_id);
         $stmt->bindParam(":status_id", $new_status_id);
         $stmt->bindParam(":changed_by_user_id", $changed_by_user_id);
-        $stmt->execute();
+        $result = $stmt->execute();
+
+        if (!$result) {
+            error_log("🚨 Failed to insert status change history");
+        } else {
+            error_log("✅ Status change history inserted successfully");
+        }
 
         echo json_encode(["success" => true, "message" => "Status updated."]);
     }
