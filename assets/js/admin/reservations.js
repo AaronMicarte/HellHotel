@@ -571,8 +571,8 @@ async function displayReservations(data) {
     try {
         const response = await axios.get(`${BASE_URL}/reservations/reservations.php`, {
             params: {
-                operation: "getAllReservations",
-                type: "walk-in"  // Filter for walk-in reservations only
+                operation: "getAllReservations"
+                // Show ALL reservation types (walk-in AND online)
             }
         });
 
@@ -709,7 +709,10 @@ function displayReservationsTable(reservations) {
         <td>${res.check_in_date || 'N/A'}${checkInTime12 ? " " + checkInTime12 : ""}</td>
         <td>${res.check_out_date || 'N/A'}${checkOutTime12 ? " " + checkOutTime12 : ""}</td>
                                         <td>
-                                            <span class='badge' style='background-color: orange; color: white;'>Walk-in</span>
+                                            ${res.reservation_type === 'online' ?
+                `<span class='badge' style='background-color: #007bff; color: white;'>Online</span>` :
+                `<span class='badge' style='background-color: orange; color: white;'>Walk-in</span>`
+            }
                                         </td>
         <td>${isOverdue ? `<span class='text-danger fw-bold'><i class='fas fa-exclamation-circle'></i> Overdue</span>` : getStatusBadge(res.reservation_status || res.room_status || 'pending')}</td>
         <td class="status-flow-col">${renderStatusFlowIcons(res)}</td>

@@ -31,3 +31,12 @@
 2025-09-04T11:40:09+02:00 insertOnHoldPayment payload: {"reservation_id":"134","billing_id":"102","sub_method_id":"2","amount_paid":249,"payment_date":"2025-09-04","reference_number":"123321123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
 2025-09-04T11:40:09+02:00 File uploaded: assets/images/payment/1756978809_humba-bisaya-recipe.jpg
 2025-09-04T11:40:10+02:00 Payment inserted successfully with ID: 98
+2025-09-04T12:08:56+02:00 insertOnHoldPayment payload: {"reservation_id":"135","billing_id":"103","sub_method_id":"1","amount_paid":199,"payment_date":"2025-09-04","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T12:08:56+02:00 File uploaded: assets/images/payment/1756980536_towel.jpg
+2025-09-04T12:08:56+02:00 Payment inserted successfully with ID: 99
+2025-09-04T12:50:03+02:00 insertOnHoldPayment payload: {"reservation_id":"136","billing_id":null,"sub_method_id":"1","amount_paid":99.5,"payment_date":"2025-09-04","reference_number":"321123","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T12:50:03+02:00 File uploaded: assets/images/payment/1756983003_bg.jpg
+2025-09-04T12:50:03+02:00 Payment inserted successfully with ID: 100
+2025-09-04T13:07:12+02:00 insertOnHoldPayment payload: {"reservation_id":"137","billing_id":"105","sub_method_id":"1","amount_paid":99.5,"payment_date":"2025-09-04","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T13:07:12+02:00 File uploaded: assets/images/payment/1756984032_rebisco-sandwich-choco.jpg
+2025-09-04T13:07:12+02:00 Payment inserted successfully with ID: 101

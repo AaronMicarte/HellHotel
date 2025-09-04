@@ -39,7 +39,8 @@ class Reservation
         LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id
         LEFT JOIN User u ON res.user_id = u.user_id
         LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id
-        WHERE res.is_deleted = 0";
+        WHERE res.is_deleted = 0
+        AND NOT (res.reservation_type = 'online' AND rs.reservation_status = 'pending')";
 
         // Apply filters
         $params = array();

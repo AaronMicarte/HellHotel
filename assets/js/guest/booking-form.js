@@ -1345,7 +1345,7 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
                     <i class="fas fa-envelope me-2"></i>
                     <strong>Please check your email</strong> for booking confirmation details, receipt, and important information about your stay.
                 </div>
-                <p class="small text-muted mt-3">Please keep your reservation ID for reference and bring a valid ID during check-in.</p>
+                <p class="small mt-3">Please keep your reservation ID for reference and bring a valid ID during check-in.</p>
             </div>
         `,
         confirmButtonText: 'Done',
