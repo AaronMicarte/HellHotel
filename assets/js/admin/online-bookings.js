@@ -659,7 +659,7 @@ async function saveRoomAssignments() {
             assignments.push({
                 reserved_room_id: reservedRoomId,
                 room_id: roomId,
-                reservation_id: currentReservationId // ADD MISSING RESERVATION_ID
+                reservation_id: currentReservationId
             });
         }
     }
@@ -688,7 +688,6 @@ async function saveRoomAssignments() {
         let currentUserName = 'Unknown Admin';
 
         try {
-            // Get user info from auth system
             if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
                 const userInfo = window.adminAuth.getUser();
                 currentUserId = userInfo?.user_id || null;
@@ -698,9 +697,16 @@ async function saveRoomAssignments() {
             console.warn('Could not get current user info:', authError);
         }
 
+        // Get main guest info for first room assignment
+        const booking = currentBookings.find(b => b.reservation_id === currentReservationId);
+        const mainGuestName = booking ? (booking.guest_name || `${booking.first_name || ''} ${booking.last_name || ''}`.trim()) : 'Main Guest';
+
         // Save room assignments
-        console.log('Saving assignments:', assignments); // DEBUG
-        for (let assignment of assignments) {
+        console.log('Saving assignments:', assignments);
+        for (let i = 0; i < assignments.length; i++) {
+            const assignment = assignments[i];
+            const isFirstRoom = i === 0; // First room gets main guest
+
             const assignmentData = {
                 reserved_room_id: assignment.reserved_room_id,
                 room_id: assignment.room_id,
@@ -715,19 +721,57 @@ async function saveRoomAssignments() {
             formData.append('json', JSON.stringify(assignmentData));
 
             const response = await axios.post(`${BASE_URL}/reservations/reserved_rooms.php`, formData);
-            console.log('Assignment response:', response.data); // DEBUG
+            console.log('Assignment response:', response.data);
+
+            // For first room, ensure main guest is added as a companion if not already
+            // Skip this for online bookings as main guest is already handled during reservation creation
+            const booking = currentBookings.find(b => b.reservation_id === currentReservationId);
+            const isOnlineBooking = booking && booking.reservation_type === 'online';
+
+            if (isFirstRoom && mainGuestName && mainGuestName !== 'Main Guest' && !isOnlineBooking) {
+                const reservedRoom = reservedRooms.find(r => r.reserved_room_id == assignment.reserved_room_id);
+                const existingCompanions = reservedRoom?.companions || [];
+
+                // Check if main guest is already in companions
+                const mainGuestExists = existingCompanions.some(comp =>
+                    comp.toLowerCase().trim() === mainGuestName.toLowerCase().trim()
+                );
+
+                if (!mainGuestExists) {
+                    // Add main guest as first companion
+                    const mainGuestData = {
+                        reserved_room_id: assignment.reserved_room_id,
+                        full_name: mainGuestName
+                    };
+
+                    const companionFormData = new FormData();
+                    companionFormData.append('operation', 'insertCompanion');
+                    companionFormData.append('json', JSON.stringify(mainGuestData));
+
+                    try {
+                        await axios.post(`${BASE_URL}/reservations/companions.php`, companionFormData);
+                        console.log('Main guest added to first room:', mainGuestName);
+                    } catch (error) {
+                        console.warn('Failed to add main guest to first room:', error);
+                    }
+                }
+            } else if (isOnlineBooking) {
+                console.log('Skipping main guest addition for online booking - already handled during reservation creation');
+            }
         }
 
-        // Save companions for each reserved room
-        await saveCompanionsForAssignments(reservedRooms);
+        // Save existing companions for rooms (avoid duplication)
+        await saveCompanionsForAssignments(reservedRooms, mainGuestName);
 
-        // Also log the assignment action to reservation history
+        // Log the assignment action to reservation history
         if (currentReservationId) {
             try {
                 const historyData = {
                     reservation_id: currentReservationId,
                     action: 'room_assignment',
-                    details: `${assignments.length} room(s) assigned by ${currentUserName}`
+                    details: `${assignments.length} room(s) assigned by ${currentUserName}`,
+                    changed_by_user_id: currentUserId,
+                    changed_by_username: currentUserName
                 };
 
                 await axios.post(`${BASE_URL}/reservations/reservation_history.php`, historyData, {
@@ -759,20 +803,57 @@ async function saveRoomAssignments() {
 }
 
 /**
- * Save companions for assigned rooms
+ * Save companions for assigned rooms (prevent duplication)
  */
-async function saveCompanionsForAssignments(reservedRooms) {
+async function saveCompanionsForAssignments(reservedRooms, mainGuestName = null) {
     if (!reservedRooms || reservedRooms.length === 0) return;
 
     try {
+        // Check if this is an online booking by looking at the reservation type
+        const booking = currentBookings.find(b => b.reservation_id === currentReservationId);
+        const isOnlineBooking = booking && booking.reservation_type === 'online';
+
+        // Skip companion saving for online bookings as companions are already saved during reservation creation
+        if (isOnlineBooking) {
+            console.log('Skipping companion saving for online booking - companions already exist');
+            return;
+        }
+
+        // Only process companions for non-online bookings (admin-created bookings)
         for (const reservedRoom of reservedRooms) {
             if (reservedRoom.companions && reservedRoom.companions.length > 0) {
-                // Save companions for this reserved room
+                // Get existing companions for this reserved room to avoid duplicates
+                const existingResponse = await axios.get(`${BASE_URL}/reservations/companions.php`, {
+                    params: {
+                        operation: 'getCompanionsByReservedRoom',
+                        reserved_room_id: reservedRoom.reserved_room_id
+                    }
+                });
+
+                const existingCompanions = Array.isArray(existingResponse.data) ?
+                    existingResponse.data.map(comp => comp.full_name.toLowerCase().trim()) : [];
+
+                // Save companions that don't already exist
                 for (const companionName of reservedRoom.companions) {
                     if (companionName && companionName.trim() !== '') {
+                        const cleanName = companionName.trim();
+                        const cleanNameLower = cleanName.toLowerCase();
+
+                        // Skip if companion already exists or if it's the main guest (already added)
+                        if (existingCompanions.includes(cleanNameLower)) {
+                            console.log(`Companion ${cleanName} already exists for room ${reservedRoom.reserved_room_id}, skipping`);
+                            continue;
+                        }
+
+                        // Skip if this is the main guest (already handled separately)
+                        if (mainGuestName && cleanNameLower === mainGuestName.toLowerCase().trim()) {
+                            console.log(`Skipping main guest ${cleanName} (already added)`);
+                            continue;
+                        }
+
                         const companionData = {
                             reserved_room_id: reservedRoom.reserved_room_id,
-                            full_name: companionName.trim()
+                            full_name: cleanName
                         };
 
                         const formData = new FormData();
@@ -780,11 +861,12 @@ async function saveCompanionsForAssignments(reservedRooms) {
                         formData.append('json', JSON.stringify(companionData));
 
                         await axios.post(`${BASE_URL}/reservations/companions.php`, formData);
+                        console.log(`Added companion ${cleanName} to room ${reservedRoom.reserved_room_id}`);
                     }
                 }
             }
         }
-        console.log('Companions saved successfully');
+        console.log('Companions saved successfully (no duplicates)');
     } catch (error) {
         console.error('Error saving companions:', error);
         // Don't fail the whole assignment operation
@@ -889,6 +971,21 @@ async function renderBookingDetails(data) {
         console.warn('Could not fetch full reservation details:', error);
     }
 
+    // Try to get payment details for this reservation
+    try {
+        const paymentResponse = await axios.get(`${BASE_URL}/payments/payments.php`, {
+            params: {
+                operation: 'getPaymentsByReservation',
+                reservation_id: data.reservation_id
+            }
+        });
+        if (paymentResponse.data && Array.isArray(paymentResponse.data)) {
+            fullReservationData.payments = paymentResponse.data;
+        }
+    } catch (error) {
+        console.warn('Could not fetch payment details:', error);
+    }
+
     // Extract guest name with better fallback logic
     let guestName = 'Unknown Guest';
     if (fullReservationData.guest_name && fullReservationData.guest_name !== 'null null') {
@@ -920,18 +1017,49 @@ async function renderBookingDetails(data) {
         guestId
     });
 
-    // Show payment info for confirmed bookings, or show on-hold payment info for pending online bookings
+    // Show payment info for ALL reservations (confirmed AND pending)
     let paymentInfo = '';
-    if (reservationStatus !== 'pending') {
-        try {
-            const paymentResponse = await axios.get(`${BASE_URL}/payments/payments.php`, {
-                params: {
-                    operation: 'getPaymentsByReservation',
-                    reservation_id: reservationId
-                }
-            });
-            if (paymentResponse.data && Array.isArray(paymentResponse.data) && paymentResponse.data.length > 0) {
-                const payments = paymentResponse.data;
+    try {
+        const paymentResponse = await axios.get(`${BASE_URL}/payments/payments.php`, {
+            params: {
+                operation: 'getPaymentsByReservation',
+                reservation_id: reservationId
+            }
+        });
+
+        if (paymentResponse.data && Array.isArray(paymentResponse.data) && paymentResponse.data.length > 0) {
+            const payments = paymentResponse.data;
+
+            // Check for on-hold payments first
+            const onHoldPayment = payments.find(p => p.payment_status_id == 1);
+            if (onHoldPayment && reservationStatus === 'pending') {
+                // Show on-hold payment info for pending reservations
+                paymentInfo = `
+                    <div class="col-12 mt-4">
+                        <h6>On-Hold Payment Information</h6>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-clock me-2"></i>This payment is pending confirmation
+                        </div>
+                        <table class="table table-sm">
+                            <tr><td><strong>Amount:</strong></td><td>₱${Number(onHoldPayment.amount_paid || 0).toLocaleString()}</td></tr>
+                            <tr><td><strong>Reference #:</strong></td><td>${onHoldPayment.reference_number || 'N/A'}</td></tr>
+                            <tr><td><strong>Date:</strong></td><td>${formatDate(onHoldPayment.payment_date)}</td></tr>
+                            <tr><td><strong>Notes:</strong></td><td>${onHoldPayment.notes || 'Online booking payment'}</td></tr>
+                            <tr><td><strong>Proof:</strong></td><td>${onHoldPayment.proof_of_payment_url ?
+                        `<button class='btn btn-sm btn-outline-primary' onclick=\"viewProofOfPayment('${onHoldPayment.proof_of_payment_url}')\">
+                                    <i class='fas fa-image me-1'></i>View Proof
+                                </button>` :
+                        '<span class="text-muted">No proof uploaded</span>'}</td></tr>
+                        </table>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-success" id="confirmAndCreateBillingBtn">
+                                <i class="fas fa-check me-1"></i>Confirm & Create Billing
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Show confirmed payments table
                 paymentInfo = `
                     <div class="col-12 mt-4">
                         <h6>Payment Information</h6>
@@ -955,7 +1083,7 @@ async function renderBookingDetails(data) {
                                             <td>${payment.reference_number || 'N/A'}</td>
                                             <td>
                                                 ${payment.proof_of_payment_url ?
-                        `<button class="btn btn-sm btn-outline-primary" onclick="viewProofOfPayment('../../assets/images/payment/${payment.proof_of_payment_url}')">
+                        `<button class="btn btn-sm btn-outline-primary" onclick="viewProofOfPayment('${payment.proof_of_payment_url}')">
                                                         <i class="fas fa-image me-1"></i>View
                                                     </button>` :
                         '<span class="text-muted">None</span>'
@@ -968,57 +1096,23 @@ async function renderBookingDetails(data) {
                         </div>
                     </div>
                 `;
-            } else {
-                paymentInfo = `
-                    <div class="col-12 mt-4">
-                        <h6>Payment Information</h6>
-                        <p class="text-muted">No payment records found for this reservation.</p>
-                    </div>
-                `;
             }
-        } catch (error) {
-            console.error('Error loading payment info:', error);
-            paymentInfo = `
-                <div class="col-12 mt-4">
-                    <h6>Payment Information</h6>
-                    <p class="text-danger">Error loading payment information: ${error.message}</p>
-                </div>
-            `;
-        }
-    } else {
-        // Show on-hold payment info if available
-        let onHold = null;
-        try {
-            if (fullReservationData.on_hold_payment_info) {
-                onHold = typeof fullReservationData.on_hold_payment_info === 'string'
-                    ? JSON.parse(fullReservationData.on_hold_payment_info)
-                    : fullReservationData.on_hold_payment_info;
-            }
-        } catch (e) { onHold = null; }
-        if (onHold) {
-            paymentInfo = `
-                <div class="col-12 mt-4">
-                    <h6>On-Hold Payment Information</h6>
-                    <table class="table table-sm">
-                        <tr><td><strong>Method:</strong></td><td>${onHold.method_name || 'N/A'}</td></tr>
-                        <tr><td><strong>Amount:</strong></td><td>₱${Number(onHold.amount || 0).toLocaleString()}</td></tr>
-                        <tr><td><strong>Reference #:</strong></td><td>${onHold.reference_number || 'N/A'}</td></tr>
-                        <tr><td><strong>Notes:</strong></td><td>${onHold.notes || ''}</td></tr>
-                        <tr><td><strong>Proof:</strong></td><td>${onHold.proof_of_payment_url ? `<button class='btn btn-sm btn-outline-primary' onclick=\"viewProofOfPayment('../../assets/images/payment/${onHold.proof_of_payment_url}')\"><i class='fas fa-image me-1'></i>View</button>` : '<span class="text-muted">None</span>'}</td></tr>
-                    </table>
-                    <div class="d-flex justify-content-end">
-                        <button class="btn btn-success" id="confirmAndCreateBillingBtn"><i class="fas fa-check me-1"></i>Confirm & Create Billing</button>
-                    </div>
-                </div>
-            `;
         } else {
             paymentInfo = `
                 <div class="col-12 mt-4">
                     <h6>Payment Information</h6>
-                    <p class="text-muted">No payment info submitted yet.</p>
+                    <p class="text-muted">No payment records found for this reservation.</p>
                 </div>
             `;
         }
+    } catch (error) {
+        console.error('Error loading payment info:', error);
+        paymentInfo = `
+            <div class="col-12 mt-4">
+                <h6>Payment Information</h6>
+                <p class="text-danger">Error loading payment information: ${error.message}</p>
+            </div>
+        `;
     }
 
     // Get reserved rooms and companions information
@@ -1425,52 +1519,40 @@ function viewProofOfPayment(imageUrl) {
     // Handle different image URL formats
     let fullImageUrl = imageUrl;
 
-    // If imageUrl doesn't start with http or /, assume it's a filename
-    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-        fullImageUrl = `../../assets/images/payment/${imageUrl}`;
-    }
+    // Remove any leading slash or protocol
+    const cleanUrl = imageUrl.replace(/^\/+/, '').replace(/^https?:\/\/[^\/]+\//, '');
 
-    // Create a test image to check if the file exists
-    const testImg = new Image();
-    testImg.onload = function () {
-        // Image exists, show it
-        Swal.fire({
-            title: 'Proof of Payment',
-            imageUrl: fullImageUrl,
-            imageWidth: 'auto',
-            imageHeight: 400,
-            imageAlt: 'Proof of Payment',
-            showCloseButton: true,
-            showConfirmButton: false,
-            customClass: {
-                image: 'img-fluid'
-            }
-        });
-    };
-    testImg.onerror = function () {
-        // Image doesn't exist, try alternative paths
-        const alternativePaths = [
-            `/Hotel-Reservation-Billing-System/assets/images/payment/${imageUrl}`,
-            `../../assets/images/uploads/${imageUrl}`,
-            `/Hotel-Reservation-Billing-System/assets/images/uploads/${imageUrl}`,
-            imageUrl // Try the original URL as-is
-        ];
+    // Try multiple possible paths for the image
+    const possiblePaths = [
+        `/Hotel-Reservation-Billing-System/${cleanUrl}`, // Full path from root
+        `../../${cleanUrl}`, // Relative path
+        `/Hotel-Reservation-Billing-System/assets/images/payment/${cleanUrl}`, // Direct to payment folder
+        `../../assets/images/payment/${cleanUrl}`, // Relative to payment folder
+        imageUrl // Original URL as-is
+    ];
 
-        tryAlternativePaths(alternativePaths, 0);
-    };
-    testImg.src = fullImageUrl;
+    console.log('Trying to load proof of payment:', imageUrl);
+    console.log('Possible paths:', possiblePaths);
+
+    tryImagePaths(possiblePaths, 0);
 }
 
 /**
  * Try alternative image paths if the main one fails
  */
-function tryAlternativePaths(paths, index) {
+function tryImagePaths(paths, index) {
     if (index >= paths.length) {
         // All paths failed
         Swal.fire({
             icon: 'error',
             title: 'Image Not Found',
             text: 'The proof of payment image could not be loaded. The file may have been moved or deleted.',
+            html: `
+                <p>Attempted paths:</p>
+                <ul style="text-align: left; max-height: 200px; overflow-y: auto;">
+                    ${paths.map(path => `<li>${path}</li>`).join('')}
+                </ul>
+            `,
             footer: 'Please contact support if this issue persists.'
         });
         return;
@@ -1479,6 +1561,7 @@ function tryAlternativePaths(paths, index) {
     const testImg = new Image();
     testImg.onload = function () {
         // Found a working path
+        console.log('Successfully loaded image from:', paths[index]);
         Swal.fire({
             title: 'Proof of Payment',
             imageUrl: paths[index],
@@ -1493,8 +1576,9 @@ function tryAlternativePaths(paths, index) {
         });
     };
     testImg.onerror = function () {
+        console.log('Failed to load image from:', paths[index]);
         // Try next path
-        tryAlternativePaths(paths, index + 1);
+        tryImagePaths(paths, index + 1);
     };
     testImg.src = paths[index];
 }

@@ -139,6 +139,90 @@ class PaymentAPI
         }
     }
 
+    function insertOnHoldPayment($json)
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+        $json = json_decode($json, true);
+
+        // Debug: Log incoming payload
+        file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " insertOnHoldPayment payload: " . json_encode($json) . "\n", FILE_APPEND);
+
+        try {
+            // Handle proof of payment file upload
+            $proofOfPaymentUrl = null;
+            if (isset($_FILES['proof_of_payment']) && $_FILES['proof_of_payment']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = '../../../assets/images/payment/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                $fileName = time() . '_' . basename($_FILES['proof_of_payment']['name']);
+                $targetPath = $uploadDir . $fileName;
+
+                if (move_uploaded_file($_FILES['proof_of_payment']['tmp_name'], $targetPath)) {
+                    $proofOfPaymentUrl = 'assets/images/payment/' . $fileName;
+                    file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " File uploaded: " . $proofOfPaymentUrl . "\n", FILE_APPEND);
+                }
+            }
+
+            // Insert payment record with billing_id if provided
+            $sql = "INSERT INTO Payment (
+                        user_id, 
+                        billing_id,
+                        reservation_id, 
+                        sub_method_id, 
+                        amount_paid, 
+                        payment_date, 
+                        notes, 
+                        reference_number, 
+                        proof_of_payment_url
+                    ) VALUES (
+                        NULL, 
+                        :billing_id,
+                        :reservation_id, 
+                        :sub_method_id, 
+                        :amount_paid, 
+                        :payment_date, 
+                        :notes, 
+                        :reference_number, 
+                        :proof_of_payment_url
+                    )";
+
+            $stmt = $db->prepare($sql);
+            $billing_id = isset($json['billing_id']) ? $json['billing_id'] : null;
+            $stmt->bindParam(":billing_id", $billing_id);
+            $stmt->bindParam(":reservation_id", $json['reservation_id']);
+            $stmt->bindParam(":sub_method_id", $json['sub_method_id']);
+            $stmt->bindParam(":amount_paid", $json['amount_paid']);
+            $stmt->bindParam(":payment_date", $json['payment_date']);
+            $stmt->bindParam(":notes", $json['notes']);
+            $stmt->bindParam(":reference_number", $json['reference_number']);
+            $stmt->bindParam(":proof_of_payment_url", $proofOfPaymentUrl);
+            $stmt->execute();
+
+            $paymentId = $db->lastInsertId();
+
+            if ($paymentId) {
+                file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " Payment inserted successfully with ID: " . $paymentId . "\n", FILE_APPEND);
+                echo json_encode([
+                    'success' => true,
+                    'payment_id' => $paymentId,
+                    'message' => 'On-hold payment created successfully'
+                ]);
+            } else {
+                throw new Exception('Failed to create payment record');
+            }
+        } catch (PDOException $e) {
+            file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " PDOException in insertOnHoldPayment: " . $e->getMessage() . "\n", FILE_APPEND);
+            echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+        } catch (Exception $e) {
+            file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " Exception in insertOnHoldPayment: " . $e->getMessage() . "\n", FILE_APPEND);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
     function getPayment($json)
     {
         include_once '../../config/database.php';
@@ -349,6 +433,9 @@ switch ($operation) {
         break;
     case "insertPayment":
         $payment->insertPayment($json);
+        break;
+    case "insertOnHoldPayment":
+        $payment->insertOnHoldPayment($json);
         break;
     case "getPayment":
         $payment->getPayment($json);

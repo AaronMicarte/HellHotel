@@ -1234,7 +1234,7 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
             }
         });
 
-        // Gather on-hold payment info
+        // Prepare payment data (create actual payment record instead of JSON)
         const paymentMethodId = selectedPaymentMethodId;
         const referenceNumber = document.getElementById('referenceNumber')?.value || '';
         const proofOfPayment = document.getElementById('proofOfPayment');
@@ -1243,14 +1243,6 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
             proofOfPaymentFile = proofOfPayment.files[0];
         }
 
-        const onHoldPaymentInfo = {
-            sub_method_id: paymentMethodId,
-            amount_paid: totalAmount * 0.5,
-            reference_number: referenceNumber,
-            notes: 'On hold - guest submitted payment info',
-            proof_of_payment_filename: proofOfPaymentFile ? proofOfPaymentFile.name : null
-        };
-
         const reservationData = {
             guest_id: guestId,
             check_in_date: checkInDate,
@@ -1258,15 +1250,38 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
             reservation_type: 'online',
             requested_room_type_id: firstRoomTypeId,
             rooms: roomsArray,
-            on_hold_payment_info: onHoldPaymentInfo
+            // Remove on_hold_payment_info - we'll create payment record separately
         };
+
+        // Collect companions data to send with reservation
+        const companionsData = [];
+        Object.entries(selectedRooms).forEach(([roomTypeId, quantity]) => {
+            for (let i = 0; i < quantity; i++) {
+                const roomCompanionKey = `${roomTypeId}-${i}`;
+                const roomCompanion = roomCompanions[roomCompanionKey];
+                if (roomCompanion && roomCompanion.numCompanions > 0) {
+                    roomCompanion.companions.forEach((companion) => {
+                        if (companion && companion.full_name && companion.full_name.trim()) {
+                            companionsData.push({
+                                room_type_id: roomTypeId,
+                                room_index: i,
+                                full_name: companion.full_name.trim()
+                            });
+                        }
+                    });
+                }
+            }
+        });
 
         const formData = new FormData();
         formData.append('operation', 'insertReservation');
         formData.append('json', JSON.stringify(reservationData));
-        if (proofOfPaymentFile) {
-            formData.append('proof_of_payment', proofOfPaymentFile);
+
+        // Add companions data
+        if (companionsData.length > 0) {
+            formData.append('companions', JSON.stringify(companionsData));
         }
+
         const res = await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/reservations.php', formData);
         console.log('Backend response:', res.data);
         reservationId = res.data && res.data.reservation_id ? res.data.reservation_id : null;
@@ -1274,148 +1289,51 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
             console.error('No reservation_id in response. Full response:', res.data);
             throw new Error('Failed to get reservation ID from response');
         }
+
+        // Create payment record directly in Payment table (on hold status)
+        try {
+            const paymentData = {
+                reservation_id: reservationId,
+                billing_id: res.data.billing_id || null, // Use billing_id from reservation response
+                sub_method_id: paymentMethodId,
+                amount_paid: totalAmount * 0.5, // 50% down payment
+                payment_date: new Date().toISOString().split('T')[0], // Today's date
+                reference_number: referenceNumber,
+                notes: 'Online booking - On hold pending confirmation',
+                status: 'on_hold' // New status for pending payments
+            };
+
+            const paymentFormData = new FormData();
+            paymentFormData.append('operation', 'insertOnHoldPayment');
+            paymentFormData.append('json', JSON.stringify(paymentData));
+
+            // Upload proof of payment if provided
+            if (proofOfPaymentFile) {
+                paymentFormData.append('proof_of_payment', proofOfPaymentFile);
+            }
+
+            await axios.post('/Hotel-Reservation-Billing-System/api/admin/payments/payments.php', paymentFormData);
+            console.log('Payment record created successfully with billing_id:', res.data.billing_id);
+        } catch (paymentError) {
+            console.error('Failed to create payment record:', paymentError);
+            // Continue with booking even if payment fails
+        }
     } catch (err) {
         console.error('Reservation creation error:', err);
         Swal.fire('Error', 'Failed to create reservation', 'error');
         return;
     }
 
-    // 2b. Save companions for each reserved room
-    try {
-        // Get all reserved rooms for this reservation
-        const getReservedRoomsRes = await axios.get(`/Hotel-Reservation-Billing-System/api/admin/reservations/reserved_rooms.php?reservation_id=${reservationId}`);
-        const reservedRooms = Array.isArray(getReservedRoomsRes.data) ? getReservedRoomsRes.data : [];
-
-        // Map companions to reserved rooms based on room type and index
-        let roomIndex = 0;
-        Object.entries(selectedRooms).forEach(([roomTypeId, quantity]) => {
-            for (let i = 0; i < quantity; i++) {
-                const roomCompanionKey = `${roomTypeId}-${i}`;
-                const roomCompanion = roomCompanions[roomCompanionKey];
-
-                if (roomCompanion && roomCompanion.numCompanions > 0 && reservedRooms[roomIndex]) {
-                    const reservedRoomId = reservedRooms[roomIndex].reserved_room_id;
-
-                    // Save companions for this reserved room
-                    roomCompanion.companions.forEach(async (companion) => {
-                        if (companion && companion.full_name && companion.full_name.trim()) {
-                            const companionData = {
-                                reserved_room_id: reservedRoomId,
-                                full_name: companion.full_name.trim()
-                            };
-
-                            const formData = new FormData();
-                            formData.append('operation', 'insertCompanion');
-                            formData.append('json', JSON.stringify(companionData));
-
-                            await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/companions.php', formData);
-                        }
-                    });
-                }
-                roomIndex++;
-            }
-        });
-    } catch (err) {
-        console.error('Failed to save companions:', err);
-        // Non-fatal error, continue with booking
-    }    // 3. Get billing info for the reservation to get billing_id
-    let billingId = null;
-    // Only fetch billing if reservation is confirmed/approved
-    if (window.bookingReservationStatus && window.bookingReservationStatus !== 'pending') {
-        try {
-            const billingRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/billing/billing.php', {
-                params: { operation: 'getBillingByReservation', reservation_id: reservationId }
-            });
-            console.log('Billing response:', billingRes.data);
-            if (billingRes.data && billingRes.data.billing_id) {
-                billingId = billingRes.data.billing_id;
-            } else if (billingRes.data && billingRes.data.status === 'no_billing') {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Billing Record Not Ready',
-                    text: 'This booking is still pending confirmation. Billing records will be created once the booking is confirmed by hotel staff.',
-                    footer: 'Please wait for the Email Confirmation.'
-                });
-                return;
-            } else {
-                throw new Error('No billing record found for reservation');
-            }
-        } catch (err) {
-            console.error('Failed to get billing information:', err);
-            let errorMessage = 'Failed to get billing information';
-            if (err.response && err.response.status === 404) {
-                errorMessage = 'Billing record not found. This booking may still be pending approval.';
-            } else if (err.message) {
-                errorMessage = err.message;
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Billing Information Error',
-                text: errorMessage,
-                footer: 'Please contact the hotel if this issue persists.'
-            });
-            return;
-        }
-    } else {
-        // If pending, skip billing fetch and show info
-        Swal.fire({
-            icon: 'info',
-            title: 'Booking Pending',
-            text: 'This booking is still pending confirmation. Billing will be available after approval.',
-            footer: 'Please wait for the Email Confirmation.'
-        });
-        return;
-    }
-
-    // 4. Update payment amount in existing payment record (since auto-payment was created)
-    try {
-        // Find the auto-generated payment and update it with proper method details
-        const referenceNumber = document.getElementById('referenceNumber');
-        const proofOfPayment = document.getElementById('proofOfPayment');
-
-        const paymentUpdateData = {
-            billing_id: billingId,
-            sub_method_id: selectedPaymentMethodId,
-            amount_paid: totalAmount * 0.5
-        };
-
-        // Add reference number if provided
-        if (referenceNumber && referenceNumber.value.trim()) {
-            paymentUpdateData.reference_number = referenceNumber.value.trim();
-        }
-
-        // Add notes for proof of payment if provided
-        if (proofOfPayment && proofOfPayment.files.length > 0) {
-            paymentUpdateData.notes = 'Proof of payment uploaded - Guest booking';
-        } else {
-            paymentUpdateData.notes = 'Guest booking payment';
-        }
-
-        const formData = new FormData();
-        formData.append('operation', 'updateLatestPayment');
-        formData.append('json', JSON.stringify(paymentUpdateData));
-
-        // Upload proof of payment if provided
-        if (proofOfPayment && proofOfPayment.files.length > 0) {
-            formData.append('proof_of_payment', proofOfPayment.files[0]);
-        }
-
-        await axios.post('/Hotel-Reservation-Billing-System/api/admin/payments/payments.php', formData);
-    } catch (err) {
-        console.error('Failed to update payment:', err);
-        // Non-fatal error, booking was still successful
-    }
-
-    // Success
+    // Success - Online bookings don't need billing records until confirmed
     forms.forEach(f => f.classList.add('d-none'));
 
     // Create a more professional success message with booking details
     Swal.fire({
         icon: 'success',
-        title: 'Booking Confirmed!',
+        title: 'Your Booking is Confirmed!',
         html: `
             <div class="booking-confirmation">
-                <p>Thank you for booking with HellHotel.</p>
+                <p><i class="fas fa-check-circle text-success me-2"></i>Thank you for booking with HellHotel.</p>
                 <div class="confirmation-details mt-3">
                     <p><strong>Reservation ID:</strong> ${reservationId}</p>
                     <p><strong>Check-in Date:</strong> ${formatDate(checkInDate)}</p>
@@ -1423,8 +1341,11 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
                     <p><strong>Amount Paid:</strong> ₱${(totalAmount * 0.5).toFixed(2)} (50% Downpayment)</p>
                     <p><strong>Payment Method:</strong> ${selectedPaymentMethod}</p>
                 </div>
-                <p class="mt-3">A confirmation email has been sent to your email address.</p>
-                <p class="small text-muted mt-3">Please keep your reservation ID for reference.</p>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-envelope me-2"></i>
+                    <strong>Please check your email</strong> for booking confirmation details, receipt, and important information about your stay.
+                </div>
+                <p class="small text-muted mt-3">Please keep your reservation ID for reference and bring a valid ID during check-in.</p>
             </div>
         `,
         confirmButtonText: 'Done',

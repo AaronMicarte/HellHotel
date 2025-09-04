@@ -104,6 +104,25 @@ class ReservedRoomCompanion
         $returnValue = $stmt->rowCount() > 0 ? 1 : 0;
         echo json_encode($returnValue);
     }
+
+    function getCompanionsByReservedRoom($json)
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+        $json = json_decode($json, true);
+
+        $sql = "SELECT c.*
+                FROM ReservedRoomCompanion c
+                WHERE c.reserved_room_id = :reserved_room_id AND c.is_deleted = 0
+                ORDER BY c.created_at DESC";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(":reserved_room_id", $json['reserved_room_id']);
+        $stmt->execute();
+        $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode($rs);
+    }
 }
 
 // Request handling
@@ -141,5 +160,8 @@ switch ($operation) {
         break;
     case "deleteCompanion":
         $companion->deleteCompanion($json);
+        break;
+    case "getCompanionsByReservedRoom":
+        $companion->getCompanionsByReservedRoom($json);
         break;
 }

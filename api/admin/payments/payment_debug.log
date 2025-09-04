@@ -22,3 +22,12 @@
 2025-09-01T19:32:23+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"2","payment_date":"2025-09-02 01:32:23","notes":"Wala lang","reference_number":null}
 2025-09-01T19:32:23+02:00 ERROR: Reference number is required for electronic payments
 2025-09-01T19:32:27+02:00 insertPayment payload: {"user_id":2,"billing_id":"78","reservation_id":"100","sub_method_id":1,"amount_paid":"2","payment_date":"2025-09-02 01:32:27","notes":"Wala lang","reference_number":"123123123"}
+2025-09-04T09:50:45+02:00 insertOnHoldPayment payload: {"reservation_id":"131","sub_method_id":"1","amount_paid":199,"payment_date":"2025-09-04","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T09:50:45+02:00 File uploaded: assets/images/payment/1756972245_rebisco-sandwich-choco.jpg
+2025-09-04T09:50:46+02:00 Payment inserted successfully with ID: 96
+2025-09-04T10:16:46+02:00 insertOnHoldPayment payload: {"reservation_id":"133","billing_id":"101","sub_method_id":"1","amount_paid":249,"payment_date":"2025-09-04","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T10:16:46+02:00 File uploaded: assets/images/payment/1756973806_rebisco-sandwich-choco.jpg
+2025-09-04T10:16:46+02:00 Payment inserted successfully with ID: 97
+2025-09-04T11:40:09+02:00 insertOnHoldPayment payload: {"reservation_id":"134","billing_id":"102","sub_method_id":"2","amount_paid":249,"payment_date":"2025-09-04","reference_number":"123321123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-04T11:40:09+02:00 File uploaded: assets/images/payment/1756978809_humba-bisaya-recipe.jpg
+2025-09-04T11:40:10+02:00 Payment inserted successfully with ID: 98

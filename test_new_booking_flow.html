@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Booking Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .room-selection {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .companion-input {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Online Booking Test</h1>
+
+    <form id="testBookingForm">
+        <div class="form-group">
+            <label>Guest First Name:</label>
+            <input type="text" id="guest_first_name" value="John" required>
+        </div>
+
+        <div class="form-group">
+            <label>Guest Last Name:</label>
+            <input type="text" id="guest_last_name" value="Doe" required>
+        </div>
+
+        <div class="form-group">
+            <label>Guest Email:</label>
+            <input type="email" id="guest_email" value="john@example.com" required>
+        </div>
+
+        <div class="form-group">
+            <label>Phone Number:</label>
+            <input type="text" id="guest_phone" value="09123456789" required>
+        </div>
+
+        <div class="form-group">
+            <label>Check-in Date:</label>
+            <input type="date" id="check_in_date" required>
+        </div>
+
+        <div class="form-group">
+            <label>Check-out Date:</label>
+            <input type="date" id="check_out_date" required>
+        </div>
+
+        <div class="room-selection">
+            <h3>Room 1: Deluxe Room</h3>
+            <input type="hidden" class="room-type-id" value="1">
+            <input type="hidden" class="room-index" value="0">
+
+            <div class="form-group">
+                <label>Companion 1:</label>
+                <input type="text" class="companion-input" placeholder="Full Name">
+            </div>
+            <div class="form-group">
+                <label>Companion 2:</label>
+                <input type="text" class="companion-input" placeholder="Full Name">
+            </div>
+        </div>
+
+        <div class="room-selection">
+            <h3>Room 2: Executive Room</h3>
+            <input type="hidden" class="room-type-id" value="2">
+            <input type="hidden" class="room-index" value="0">
+
+            <div class="form-group">
+                <label>Companion 1:</label>
+                <input type="text" class="companion-input" placeholder="Full Name">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Payment Reference Number:</label>
+            <input type="text" id="reference_number" value="REF123456789" required>
+        </div>
+
+        <div class="form-group">
+            <label>Payment Proof (File):</label>
+            <input type="file" id="payment_proof" accept="image/*" required>
+        </div>
+
+        <button type="submit" class="btn">Submit Booking</button>
+    </form>
+
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // Set default dates (tomorrow and day after)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfter = new Date();
+        dayAfter.setDate(dayAfter.getDate() + 2);
+
+        document.getElementById('check_in_date').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('check_out_date').value = dayAfter.toISOString().split('T')[0];
+
+        document.getElementById('testBookingForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Processing booking...</p>';
+
+            try {
+                // Create FormData
+                const formData = new FormData();
+
+                // Add guest data
+                formData.append('guest_first_name', document.getElementById('guest_first_name').value);
+                formData.append('guest_last_name', document.getElementById('guest_last_name').value);
+                formData.append('guest_email', document.getElementById('guest_email').value);
+                formData.append('guest_phone', document.getElementById('guest_phone').value);
+                formData.append('check_in_date', document.getElementById('check_in_date').value);
+                formData.append('check_out_date', document.getElementById('check_out_date').value);
+
+                // Build rooms array
+                const rooms = [];
+                const roomSelections = document.querySelectorAll('.room-selection');
+                roomSelections.forEach((roomDiv, index) => {
+                    const roomTypeId = roomDiv.querySelector('.room-type-id').value;
+                    rooms.push({
+                        room_type_id: parseInt(roomTypeId)
+                    });
+                });
+                formData.append('rooms', JSON.stringify(rooms));
+
+                // Build companions array
+                const companions = [];
+                roomSelections.forEach((roomDiv, roomIndex) => {
+                    const roomTypeId = roomDiv.querySelector('.room-type-id').value;
+                    const companionInputs = roomDiv.querySelectorAll('.companion-input');
+                    companionInputs.forEach((input) => {
+                        if (input.value.trim()) {
+                            companions.push({
+                                full_name: input.value.trim(),
+                                room_type_id: parseInt(roomTypeId),
+                                room_index: roomIndex
+                            });
+                        }
+                    });
+                });
+                formData.append('companions', JSON.stringify(companions));
+
+                // Add payment info
+                formData.append('reference_number', document.getElementById('reference_number').value);
+                formData.append('payment_proof', document.getElementById('payment_proof').files[0]);
+                formData.append('amount', '5000'); // Example amount
+
+                console.log('FormData contents:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(key, value);
+                }
+
+                // Submit to API
+                const response = await axios.post('/Hotel-Reservation-Billing-System/assets/js/guest/booking-form.js', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                resultDiv.innerHTML = `
+                    <h3>Success!</h3>
+                    <p>Booking submitted successfully.</p>
+                    <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                `;
+
+            } catch (error) {
+                console.error('Booking error:', error);
+                resultDiv.innerHTML = `
+                    <h3>Error</h3>
+                    <p style="color: red;">Failed to submit booking: ${error.message}</p>
+                    <pre>${JSON.stringify(error.response?.data || error, null, 2)}</pre>
+                `;
+            }
+        });
+    </script>
+</body>
+
+</html>
