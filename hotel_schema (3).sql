@@ -290,7 +290,9 @@ CREATE TABLE Payment (
     sub_method_id INT,
     amount_paid DECIMAL(10,2),
     payment_date DATE,
-    notes TEXT, -- Add this line if not present
+    notes TEXT,
+    reference_number VARCHAR(255),
+    proof_of_payment_url VARCHAR(500),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_deleted BOOLEAN DEFAULT FALSE,
@@ -301,6 +303,8 @@ CREATE TABLE Payment (
 );
 
 ALTER TABLE Payment ADD COLUMN notes TEXT NULL AFTER payment_date;
+ALTER TABLE Payment ADD COLUMN reference_number VARCHAR(255) NULL AFTER notes;
+ALTER TABLE Payment ADD COLUMN proof_of_payment_url VARCHAR(500) NULL AFTER reference_number;
 
 -- Insert default billing statuses if not present
 INSERT INTO BillingStatus (billing_status_id, billing_status)

@@ -195,10 +195,10 @@ class Room
         $room_type_id = $_GET['room_type_id'] ?? null;
         $check_in_date = $_GET['check_in_date'] ?? null;
         $check_out_date = $_GET['check_out_date'] ?? null;
-        $reservation_id = $_GET['reservation_id'] ?? null;
+        $exclude_reservation_id = $_GET['exclude_reservation_id'] ?? null;
 
         if (!$room_type_id) {
-            echo json_encode([]);
+            echo json_encode(['error' => 'room_type_id is required']);
             return;
         }
 
@@ -225,26 +225,46 @@ class Room
                   )";
             $params[':check_in_date'] = $check_in_date;
             $params[':check_out_date'] = $check_out_date;
+
             // If editing, allow the current reservation's room to be available
-            if ($reservation_id) {
-                $dateFilter .= " AND res.reservation_id != :reservation_id";
-                $params[':reservation_id'] = $reservation_id;
+            if ($exclude_reservation_id && $exclude_reservation_id !== '' && $exclude_reservation_id !== 'null') {
+                $dateFilter .= " AND res.reservation_id != :exclude_reservation_id";
+                $params[':exclude_reservation_id'] = $exclude_reservation_id;
             }
             $dateFilter .= ")";
         }
 
-        $sql = "SELECT r.room_id, r.room_number, rt.type_name
-                FROM Room r
-                JOIN RoomType rt ON r.room_type_id = rt.room_type_id
-                WHERE r.is_deleted = 0
-                AND r.room_type_id = :room_type_id
-                $dateFilter
-                ORDER BY r.room_number ASC";
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $query = "SELECT 
+                                        r.*, 
+                                        rt.type_name, 
+                                        rt.description AS room_type_description,
+                                        rt.room_size_sqm,
+                                        rt.max_capacity,
+                                        rt.price_per_stay,
+                                        rt.image_url AS room_type_image_url,
+                                        rs.room_status 
+                                    FROM Room r 
+                                    LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id 
+                                    LEFT JOIN RoomStatus rs ON r.room_status_id = rs.room_status_id 
+                                    WHERE r.is_deleted = FALSE 
+                                        AND r.room_type_id = :room_type_id
+                                        {$dateFilter}
+                                    ORDER BY r.room_number";
 
-        echo json_encode($rooms);
+        try {
+            $stmt = $db->prepare($query);
+            $stmt->execute($params);
+            $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Log for debugging
+            error_log("Available rooms query executed. Found " . count($rooms) . " rooms.");
+            error_log("Parameters: " . json_encode($params));
+
+            echo json_encode($rooms);
+        } catch (Exception $e) {
+            error_log("Error in getAvailableRooms: " . $e->getMessage());
+            echo json_encode(['error' => 'Database error occurred', 'message' => $e->getMessage()]);
+        }
     }
 }
 

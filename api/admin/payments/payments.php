@@ -90,8 +90,29 @@ class PaymentAPI
             }
         }
 
-        $sql = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number)
-                VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :payment_date, :notes, :reference_number)";
+        // Handle proof of payment file upload
+        $proof_of_payment_url = null;
+        if (isset($_FILES['proof_of_payment']) && $_FILES['proof_of_payment']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = '../../../assets/images/uploads/proof-of-payment/';
+
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $fileName = 'proof_' . uniqid() . '.' . pathinfo($_FILES['proof_of_payment']['name'], PATHINFO_EXTENSION);
+            $uploadPath = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['proof_of_payment']['tmp_name'], $uploadPath)) {
+                $proof_of_payment_url = 'assets/images/uploads/proof-of-payment/' . $fileName;
+                file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " Proof of payment uploaded: $proof_of_payment_url\n", FILE_APPEND);
+            } else {
+                file_put_contents(__DIR__ . '/payment_debug.log', date('c') . " Failed to upload proof of payment\n", FILE_APPEND);
+            }
+        }
+
+        $sql = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, proof_of_payment_url)
+                VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :payment_date, :notes, :reference_number, :proof_of_payment_url)";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":user_id", $user_id);
         $stmt->bindParam(":billing_id", $json['billing_id']);
@@ -102,6 +123,7 @@ class PaymentAPI
         $stmt->bindParam(":notes", $json['notes']);
         $reference_number = isset($json['reference_number']) ? $json['reference_number'] : null;
         $stmt->bindParam(":reference_number", $reference_number);
+        $stmt->bindParam(":proof_of_payment_url", $proof_of_payment_url);
 
         try {
             $stmt->execute();
@@ -198,6 +220,24 @@ class PaymentAPI
             return;
         }
 
+        // Handle proof of payment file upload
+        $proof_of_payment_url = null;
+        if (isset($_FILES['proof_of_payment']) && $_FILES['proof_of_payment']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = '../../../assets/images/uploads/proof-of-payment/';
+
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $fileName = 'proof_' . uniqid() . '.' . pathinfo($_FILES['proof_of_payment']['name'], PATHINFO_EXTENSION);
+            $uploadPath = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['proof_of_payment']['tmp_name'], $uploadPath)) {
+                $proof_of_payment_url = 'assets/images/uploads/proof-of-payment/' . $fileName;
+            }
+        }
+
         // Update the payment
         $updateFields = [];
         $params = [':payment_id' => $paymentId];
@@ -207,6 +247,12 @@ class PaymentAPI
                 $updateFields[] = "$field = :$field";
                 $params[":$field"] = $json[$field];
             }
+        }
+
+        // Add proof of payment URL if uploaded
+        if ($proof_of_payment_url !== null) {
+            $updateFields[] = "proof_of_payment_url = :proof_of_payment_url";
+            $params[":proof_of_payment_url"] = $proof_of_payment_url;
         }
 
         if (empty($updateFields)) {
@@ -223,6 +269,36 @@ class PaymentAPI
         } else {
             echo json_encode(['success' => false, 'error' => 'Payment update failed']);
         }
+    }
+
+    function getPaymentsByReservation($json)
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+        $json = is_array($json) ? $json : json_decode($json, true);
+
+        $sql = "SELECT p.*, 
+                       u.username, 
+                       b.billing_id, 
+                       b.total_amount, 
+                       res.reservation_id, 
+                       sm.name AS sub_method_name, 
+                       cat.name AS payment_category
+                FROM Payment p
+                LEFT JOIN User u ON p.user_id = u.user_id
+                LEFT JOIN Billing b ON p.billing_id = b.billing_id
+                LEFT JOIN Reservation res ON p.reservation_id = res.reservation_id
+                LEFT JOIN PaymentSubMethod sm ON p.sub_method_id = sm.sub_method_id
+                LEFT JOIN PaymentSubMethodCategory cat ON sm.payment_category_id = cat.payment_category_id
+                WHERE p.reservation_id = :reservation_id AND p.is_deleted = 0
+                ORDER BY p.payment_date DESC, p.payment_id DESC";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(":reservation_id", $json['reservation_id']);
+        $stmt->execute();
+        $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode($rs);
     }
 
     function deletePayment($json)
@@ -252,9 +328,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (isset($_GET['payment_id'])) {
             $operation = 'getPayment';
             $json = json_encode(['payment_id' => $_GET['payment_id']]);
+        } else if (isset($_GET['reservation_id'])) {
+            $operation = 'getPaymentsByReservation';
+            $json = json_encode(['reservation_id' => $_GET['reservation_id']]);
         } else {
             $operation = 'getAllPayments';
         }
+    } else if ($operation === 'getPaymentsByReservation' && isset($_GET['reservation_id'])) {
+        $json = json_encode(['reservation_id' => $_GET['reservation_id']]);
     }
 } else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $operation = isset($_POST['operation']) ? $_POST['operation'] : '';
@@ -277,6 +358,9 @@ switch ($operation) {
         break;
     case "updateLatestPayment":
         $payment->updateLatestPayment($json);
+        break;
+    case "getPaymentsByReservation":
+        $payment->getPaymentsByReservation($json);
         break;
     case "deletePayment":
         $payment->deletePayment($json);

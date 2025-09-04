@@ -847,3 +847,97 @@
         font-size: 2rem;
     }
 }
+
+/* Online Bookings Specific Styles */
+.room-types-requested {
+    max-width: 200px;
+    word-wrap: break-word;
+}
+
+.assigned-rooms {
+    max-width: 200px;
+    word-wrap: break-word;
+}
+
+.reservation-details {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.room-assignments .card {
+    border: 1px solid #e9ecef;
+}
+
+.room-assignments .card-title {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.companions {
+    margin-top: 0.5rem;
+}
+
+.companions .badge {
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+.btn-group-vertical .btn {
+    border-radius: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.btn-group-vertical .btn:first-child {
+    border-top-left-radius: 0.375rem;
+    border-top-right-radius: 0.375rem;
+}
+
+.btn-group-vertical .btn:last-child {
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    border-bottom: none;
+}
+
+.btn-group-vertical .btn:hover {
+    z-index: 1;
+}
+
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-dark th {
+    border: none;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(255, 193, 7, 0.1);
+    transition: background-color 0.3s ease;
+}
+
+#onlineBookingsTable tbody tr[data-reservation-id] {
+    cursor: pointer;
+}
+
+.text-success i {
+    color: #28a745 !important;
+}
+
+.text-warning i {
+    color: #ffc107 !important;
+}
+
+.badge {
+    font-size: 0.8rem;
+    font-weight: 500;
+}

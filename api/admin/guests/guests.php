@@ -1,4 +1,9 @@
 <?php
+// DEBUG: Always show errors
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 
@@ -6,20 +11,37 @@ class Guest
 {
     function getAllGuests()
     {
-        include_once '../../config/database.php';
-        $database = new Database();
-        $db = $database->getConnection();
+        try {
+            include_once '../../config/database.php';
+            $database = new Database();
+            $db = $database->getConnection();
 
-        $sql = "SELECT g.*, t.id_type 
-                FROM Guest g 
-                LEFT JOIN GuestIDType t ON g.guest_idtype_id = t.guest_idtype_id
-                WHERE g.is_deleted = 0
-                ORDER BY g.last_name, g.first_name";
-        $stmt = $db->prepare($sql);
-        $stmt->execute();
-        $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!$db) {
+                error_log("Database connection failed in getAllGuests");
+                echo json_encode(['error' => 'Database connection failed']);
+                return;
+            }
 
-        echo json_encode($rs);
+            $sql = "SELECT g.*, t.id_type 
+                    FROM Guest g 
+                    LEFT JOIN GuestIDType t ON g.guest_idtype_id = t.guest_idtype_id
+                    WHERE g.is_deleted = 0
+                    ORDER BY g.last_name, g.first_name";
+
+            error_log("Executing SQL: " . $sql);
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute();
+            $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            error_log("Query executed successfully. Found " . count($rs) . " guests");
+            error_log("Sample data: " . json_encode(array_slice($rs, 0, 2)));
+
+            echo json_encode($rs);
+        } catch (Exception $e) {
+            error_log("Error in getAllGuests: " . $e->getMessage());
+            echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+        }
     }
 
     function insertGuest($json)
@@ -40,12 +62,26 @@ class Guest
             $data = $_POST;
         }
 
-        // Handle file upload from $_FILES if present
-        $id_picture_data = null;
+
+        // Handle file upload: save to /assets/images/uploads/id-pictures/ and store path
+        $id_picture_path = null;
         if (isset($_FILES['id_picture']) && $_FILES['id_picture']['error'] === UPLOAD_ERR_OK) {
-            $id_picture_data = file_get_contents($_FILES['id_picture']['tmp_name']);
+            $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/assets/images/uploads/id-pictures/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            $fileTmp = $_FILES['id_picture']['tmp_name'];
+            $fileName = basename($_FILES['id_picture']['name']);
+            $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (in_array($fileExt, $allowed)) {
+                $newFileName = uniqid('idpic_', true) . '.' . $fileExt;
+                $destPath = $uploadDir . $newFileName;
+                if (move_uploaded_file($fileTmp, $destPath)) {
+                    $id_picture_path = '/assets/images/uploads/id-pictures/' . $newFileName;
+                }
+            }
         } else if (isset($data['id_picture']) && $data['id_picture']) {
-            $id_picture_data = $data['id_picture'];
+            // If already a path (from uploadIdPicture), just use it
+            $id_picture_path = $data['id_picture'];
         }
 
         // Defensive: check required fields
@@ -61,8 +97,9 @@ class Guest
             return;
         }
 
+
         $sql = "INSERT INTO Guest (guest_idtype_id, last_name, first_name, middle_name, suffix, date_of_birth, email, phone_number, id_number, id_picture)
-                VALUES (:guest_idtype_id, :last_name, :first_name, :middle_name, :suffix, :date_of_birth, :email, :phone_number, :id_number, :id_picture)";
+        VALUES (:guest_idtype_id, :last_name, :first_name, :middle_name, :suffix, :date_of_birth, :email, :phone_number, :id_number, :id_picture)";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":guest_idtype_id", $data['guest_idtype_id']);
         $stmt->bindParam(":last_name", $data['last_name']);
@@ -73,7 +110,7 @@ class Guest
         $stmt->bindParam(":email", $data['email']);
         $stmt->bindParam(":phone_number", $data['phone_number']);
         $stmt->bindParam(":id_number", $data['id_number']);
-        $stmt->bindParam(":id_picture", $id_picture_data);
+        $stmt->bindParam(":id_picture", $id_picture_path);
         $stmt->execute();
 
         $returnValue = 0;
@@ -114,8 +151,23 @@ class Guest
         $db = $database->getConnection();
         $json = json_decode($json, true);
 
-        // If id_picture is not a file and not a valid URL, keep the old value
-        if (empty($json['id_picture']) || strpos($json['id_picture'], 'blob:') === 0 || $json['id_picture'] === 'null') {
+
+        // Handle file upload: save to /assets/images/uploads/id-pictures/ and store path
+        if (isset($_FILES['id_picture']) && $_FILES['id_picture']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/assets/images/uploads/id-pictures/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            $fileTmp = $_FILES['id_picture']['tmp_name'];
+            $fileName = basename($_FILES['id_picture']['name']);
+            $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (in_array($fileExt, $allowed)) {
+                $newFileName = uniqid('idpic_', true) . '.' . $fileExt;
+                $destPath = $uploadDir . $newFileName;
+                if (move_uploaded_file($fileTmp, $destPath)) {
+                    $json['id_picture'] = '/assets/images/uploads/id-pictures/' . $newFileName;
+                }
+            }
+        } else if (empty($json['id_picture']) || strpos($json['id_picture'], 'blob:') === 0 || $json['id_picture'] === 'null') {
             // Fetch current id_picture
             $sqlPic = "SELECT id_picture FROM Guest WHERE guest_id = :guest_id";
             $stmtPic = $db->prepare($sqlPic);
@@ -208,8 +260,15 @@ class Guest
 }
 
 // Request handling
+
 $operation = '';
 $json = '';
+// Minimal output for CLI/browser test
+if (php_sapi_name() === 'cli' || empty($_SERVER['REQUEST_METHOD'])) {
+    echo json_encode(["status" => "OK", "msg" => "guests.php loaded"]);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $operation = isset($_GET['operation']) ? $_GET['operation'] : '';
     $json = isset($_GET['json']) ? $_GET['json'] : '';

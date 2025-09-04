@@ -141,7 +141,36 @@ class Billing
         $billing = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$billing) {
-            echo json_encode([]);
+            // Check if reservation exists but no billing record yet
+            $sqlReservation = "SELECT res.*, CONCAT(g.first_name, ' ', g.last_name) AS guest_name, rs.reservation_status
+                              FROM Reservation res
+                              LEFT JOIN Guest g ON res.guest_id = g.guest_id
+                              LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id
+                              WHERE res.reservation_id = :reservation_id AND res.is_deleted = 0";
+            $stmtRes = $db->prepare($sqlReservation);
+            $stmtRes->bindParam(":reservation_id", $json['reservation_id']);
+            $stmtRes->execute();
+            $reservation = $stmtRes->fetch(PDO::FETCH_ASSOC);
+
+            if ($reservation) {
+                // Return reservation data with note that no billing exists yet
+                echo json_encode([
+                    'status' => 'no_billing',
+                    'message' => 'No billing record found for this reservation',
+                    'reservation_status' => $reservation['reservation_status'],
+                    'guest_name' => $reservation['guest_name'],
+                    'reservation_id' => $reservation['reservation_id'],
+                    'check_in_date' => $reservation['check_in_date'],
+                    'check_out_date' => $reservation['check_out_date'],
+                    'created_at' => $reservation['created_at'],
+                    'note' => 'Billing records are typically created when a reservation is confirmed'
+                ]);
+            } else {
+                echo json_encode([
+                    'status' => 'not_found',
+                    'message' => 'Reservation not found'
+                ]);
+            }
             exit;
         }
 
@@ -265,6 +294,7 @@ class Billing
         $billing['payments'] = $filteredPayments;
         $billing['amount_paid'] = $amount_paid;
         $billing['remaining_amount'] = $remaining_amount;
+        $billing['status'] = 'success';
 
         echo json_encode($billing);
         exit;

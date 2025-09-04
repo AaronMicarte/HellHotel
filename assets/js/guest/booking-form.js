@@ -1194,18 +1194,16 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
         }
     });
 
+
     // 1. Save guest info (upload id_picture if present)
     let guestId = null;
     try {
         const guestData = window.bookingGuestInfo;
         const formData = new FormData();
-
-        // Handle ID picture separately if present
         if (guestData.id_picture) {
             formData.append('id_picture', guestData.id_picture);
-            delete guestData.id_picture; // Remove from JSON payload since it's handled separately
+            delete guestData.id_picture;
         }
-
         formData.append('operation', 'insertGuest');
         formData.append('json', JSON.stringify(guestData));
         const res = await axios.post('/Hotel-Reservation-Billing-System/api/admin/guests/guests.php', formData, {
@@ -1220,36 +1218,60 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
         return;
     }
 
-    // 2. Create ONE reservation with multiple rooms
+    // 2. Create reservation with on-hold payment info (for online bookings)
     let reservationId = null;
     try {
         // Prepare rooms array for the reservation
         const roomsArray = [];
-        Object.entries(selectedRooms).forEach(([roomTypeId, quantity]) => {
+        let firstRoomTypeId = null;
+        Object.entries(selectedRooms).forEach(([roomTypeId, quantity], idx) => {
+            if (idx === 0) firstRoomTypeId = roomTypeId;
             for (let i = 0; i < quantity; i++) {
                 roomsArray.push({
                     room_type_id: roomTypeId,
-                    room_id: null // NULL for online booking - admin will assign later
+                    room_id: null
                 });
             }
         });
+
+        // Gather on-hold payment info
+        const paymentMethodId = selectedPaymentMethodId;
+        const referenceNumber = document.getElementById('referenceNumber')?.value || '';
+        const proofOfPayment = document.getElementById('proofOfPayment');
+        let proofOfPaymentFile = null;
+        if (proofOfPayment && proofOfPayment.files.length > 0) {
+            proofOfPaymentFile = proofOfPayment.files[0];
+        }
+
+        const onHoldPaymentInfo = {
+            sub_method_id: paymentMethodId,
+            amount_paid: totalAmount * 0.5,
+            reference_number: referenceNumber,
+            notes: 'On hold - guest submitted payment info',
+            proof_of_payment_filename: proofOfPaymentFile ? proofOfPaymentFile.name : null
+        };
 
         const reservationData = {
             guest_id: guestId,
             check_in_date: checkInDate,
             check_out_date: checkOutDate,
             reservation_type: 'online',
-            rooms: roomsArray // Send all rooms in one reservation
+            requested_room_type_id: firstRoomTypeId,
+            rooms: roomsArray,
+            on_hold_payment_info: onHoldPaymentInfo
         };
 
         const formData = new FormData();
         formData.append('operation', 'insertReservation');
         formData.append('json', JSON.stringify(reservationData));
-
+        if (proofOfPaymentFile) {
+            formData.append('proof_of_payment', proofOfPaymentFile);
+        }
         const res = await axios.post('/Hotel-Reservation-Billing-System/api/admin/reservations/reservations.php', formData);
+        console.log('Backend response:', res.data);
         reservationId = res.data && res.data.reservation_id ? res.data.reservation_id : null;
-
         if (!reservationId) {
+            console.error('No reservation_id in response. Full response:', res.data);
             throw new Error('Failed to get reservation ID from response');
         }
     } catch (err) {
@@ -1298,18 +1320,50 @@ document.getElementById('paymentForm').onsubmit = async function (e) {
         // Non-fatal error, continue with booking
     }    // 3. Get billing info for the reservation to get billing_id
     let billingId = null;
-    try {
-        const billingRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/billing/billing.php', {
-            params: { operation: 'getBillingByReservation', reservation_id: reservationId }
-        });
-        if (billingRes.data && billingRes.data.billing_id) {
-            billingId = billingRes.data.billing_id;
-        } else {
-            throw new Error('No billing record found for reservation');
+    // Only fetch billing if reservation is confirmed/approved
+    if (window.bookingReservationStatus && window.bookingReservationStatus !== 'pending') {
+        try {
+            const billingRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/billing/billing.php', {
+                params: { operation: 'getBillingByReservation', reservation_id: reservationId }
+            });
+            console.log('Billing response:', billingRes.data);
+            if (billingRes.data && billingRes.data.billing_id) {
+                billingId = billingRes.data.billing_id;
+            } else if (billingRes.data && billingRes.data.status === 'no_billing') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Billing Record Not Ready',
+                    text: 'This booking is still pending confirmation. Billing records will be created once the booking is confirmed by hotel staff.',
+                    footer: 'Please wait for the Email Confirmation.'
+                });
+                return;
+            } else {
+                throw new Error('No billing record found for reservation');
+            }
+        } catch (err) {
+            console.error('Failed to get billing information:', err);
+            let errorMessage = 'Failed to get billing information';
+            if (err.response && err.response.status === 404) {
+                errorMessage = 'Billing record not found. This booking may still be pending approval.';
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Billing Information Error',
+                text: errorMessage,
+                footer: 'Please contact the hotel if this issue persists.'
+            });
+            return;
         }
-    } catch (err) {
-        console.error('Failed to get billing information:', err);
-        Swal.fire('Error', 'Failed to get billing information', 'error');
+    } else {
+        // If pending, skip billing fetch and show info
+        Swal.fire({
+            icon: 'info',
+            title: 'Booking Pending',
+            text: 'This booking is still pending confirmation. Billing will be available after approval.',
+            footer: 'Please wait for the Email Confirmation.'
+        });
         return;
     }
 

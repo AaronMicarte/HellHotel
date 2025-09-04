@@ -570,7 +570,10 @@ async function displayReservations(data) {
     }
     try {
         const response = await axios.get(`${BASE_URL}/reservations/reservations.php`, {
-            params: { operation: "getAllReservations" }
+            params: {
+                operation: "getAllReservations",
+                type: "walk-in"  // Filter for walk-in reservations only
+            }
         });
 
         if (response.status === 200) {
@@ -706,14 +709,17 @@ function displayReservationsTable(reservations) {
         <td>${res.check_in_date || 'N/A'}${checkInTime12 ? " " + checkInTime12 : ""}</td>
         <td>${res.check_out_date || 'N/A'}${checkOutTime12 ? " " + checkOutTime12 : ""}</td>
                                         <td>
-                                            ${res.reservation_type === 'walk-in' ? `<span class='badge' style='background-color: orange; color: white;'>Walk-in</span>` : ''}
-                                            ${res.reservation_type === 'online' ? `<span class='badge bg-primary'>Online</span>` : ''}
+                                            <span class='badge' style='background-color: orange; color: white;'>Walk-in</span>
                                         </td>
         <td>${isOverdue ? `<span class='text-danger fw-bold'><i class='fas fa-exclamation-circle'></i> Overdue</span>` : getStatusBadge(res.reservation_status || res.room_status || 'pending')}</td>
         <td class="status-flow-col">${renderStatusFlowIcons(res)}</td>
         <td>
             <i class="fas fa-user-edit action-icon" style="color: purple; cursor:pointer; margin-right:10px" data-action="change-booker" data-id="${res.reservation_id}" title="Change Booker"></i>
             <i class="fas fa-eye action-icon text-info" data-action="view" data-id="${res.reservation_id}" title="View Details" style="cursor:pointer; margin-right:10px"></i>
+            ${(res.all_room_numbers && res.all_room_numbers.trim() !== '') || res.reservation_status !== 'pending' ?
+                `<i class="fas fa-history action-icon text-secondary" data-action="history" data-id="${res.reservation_id}" title="View Reservation History" style="cursor:pointer; margin-right:10px"></i>` :
+                `<i class="fas fa-history action-icon text-muted" title="History available after room assignment" style="cursor:not-allowed; margin-right:10px; opacity:0.5"></i>`
+            }
             <i class="fas fa-edit action-icon text-primary" data-action="edit" data-id="${res.reservation_id}" title="Edit" style="cursor:pointer; margin-right:10px"></i>
             <i class="fas fa-trash action-icon text-primary" data-action="delete" data-id="${res.reservation_id}" title="Delete" style="cursor:pointer;"></i>
         </td>
@@ -1029,6 +1035,14 @@ function displayReservationsTable(reservations) {
         if (deleteIcon) {
             deleteIcon.addEventListener("click", () => {
                 deleteReservationModal(res.reservation_id, displayReservations);
+            });
+        }
+
+        // History
+        const historyIcon = tr.querySelector('.fa-history[data-action="history"]');
+        if (historyIcon) {
+            historyIcon.addEventListener("click", () => {
+                viewReservationHistory(res.reservation_id);
             });
         }
         // Remove check-in/check-out icons and logic
@@ -1810,4 +1824,91 @@ function updateReservationStatsOverview(reservations) {
     document.getElementById("statReserved").textContent = reserved;
     document.getElementById("statPending").textContent = pending;
     document.getElementById("statCancelled").textContent = cancelled;
+}
+
+/**
+ * View reservation history for a specific reservation
+ */
+async function viewReservationHistory(reservationId) {
+    try {
+        const response = await axios.get('/Hotel-Reservation-Billing-System/api/admin/reservations/reservation_history.php', {
+            params: { reservation_id: reservationId }
+        });
+
+        if (response.data.status === 'success') {
+            const history = response.data.data || [];
+            displayReservationHistory(reservationId, history);
+        } else {
+            Swal.fire('Error', 'Failed to load reservation history', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading reservation history:', error);
+        Swal.fire('Error', 'Failed to load reservation history', 'error');
+    }
+}
+
+/**
+ * Display reservation history in a modal
+ */
+function displayReservationHistory(reservationId, history) {
+    const historyHtml = history.length > 0 ?
+        history.map(entry => {
+            const date = new Date(entry.changed_at);
+            const formattedDate = date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            let statusIcon = '<i class="fas fa-question-circle text-secondary"></i>';
+            if (entry.reservation_status === 'confirmed') statusIcon = '<i class="fas fa-check-circle text-info"></i>';
+            else if (entry.reservation_status === 'pending') statusIcon = '<i class="fas fa-hourglass-half text-warning"></i>';
+            else if (entry.reservation_status === 'checked-in') statusIcon = '<i class="fas fa-door-open text-success"></i>';
+            else if (entry.reservation_status === 'checked-out') statusIcon = '<i class="fas fa-sign-out-alt text-primary"></i>';
+            else if (entry.reservation_status === 'cancelled') statusIcon = '<i class="fas fa-times-circle text-danger"></i>';
+
+            let userIcon = '<i class="fas fa-robot me-1 text-muted"></i>';
+            if (entry.changed_by_username) {
+                if ((entry.changed_by_role || '').toLowerCase().includes('admin')) {
+                    userIcon = '<i class="fas fa-user-shield me-1" style="color:#0d6efd"></i>';
+                } else if ((entry.changed_by_role || '').toLowerCase().includes('front')) {
+                    userIcon = '<i class="fas fa-user-tie me-1" style="color:#fd7e14"></i>';
+                } else {
+                    userIcon = '<i class="fas fa-user-circle me-1 text-primary"></i>';
+                }
+            }
+
+            return `
+                <div class="d-flex align-items-center mb-3 p-3 border rounded">
+                    <div class="me-3">
+                        ${statusIcon}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${entry.reservation_status || 'Unknown Status'}</div>
+                        <div class="small text-muted">
+                            ${userIcon} Changed by: ${entry.changed_by_username || 'System'} (${entry.changed_by_role || 'Unknown'})
+                        </div>
+                        <div class="small text-muted">${formattedDate}</div>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : '<div class="text-center text-muted py-4"><i class="fas fa-inbox fa-2x mb-2"></i><br>No history found</div>';
+
+    Swal.fire({
+        title: `Reservation History - #${reservationId}`,
+        html: `
+            <div class="text-start">
+                ${historyHtml}
+            </div>
+        `,
+        width: '600px',
+        showCloseButton: true,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'reservation-history-modal'
+        }
+    });
 }

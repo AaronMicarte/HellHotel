@@ -12,6 +12,7 @@ class Reservation
 
         // Get query parameters
         $statusFilter = isset($_GET['status']) ? $_GET['status'] : null;
+        $typeFilter = isset($_GET['type']) ? $_GET['type'] : null;
         $dateFrom = isset($_GET['dateFrom']) ? $_GET['dateFrom'] : null;
         $dateTo = isset($_GET['dateTo']) ? $_GET['dateTo'] : null;
         $search = isset($_GET['search']) ? $_GET['search'] : null;
@@ -45,6 +46,10 @@ class Reservation
         if ($statusFilter) {
             $sql .= " AND rs.reservation_status = :status";
             $params[':status'] = $statusFilter;
+        }
+        if ($typeFilter) {
+            $sql .= " AND res.reservation_type = :type";
+            $params[':type'] = $typeFilter;
         }
         if ($dateFrom) {
             $sql .= " AND res.check_in_date >= :dateFrom";
@@ -106,6 +111,10 @@ class Reservation
         $database = new Database();
         $db = $database->getConnection();
         $json = is_array($json) ? $json : json_decode($json, true);
+
+        // Debug logging
+        error_log("insertReservation called with data: " . print_r($json, true));
+
         // Merge companions from POST if present (FormData sends companions as a separate field)
         if (isset($_POST['companions']) && !isset($json['companions'])) {
             $json['companions'] = $_POST['companions'];
@@ -124,16 +133,32 @@ class Reservation
             $reservation_type = $userId ? 'walk-in' : 'online';
         }
 
-        $sql = "INSERT INTO Reservation (user_id, reservation_status_id, guest_id, requested_room_type_id, reservation_type, check_in_date, check_out_date)
-        VALUES (:user_id, :reservation_status_id, :guest_id, :requested_room_type_id, :reservation_type, :check_in_date, :check_out_date)";
+        $onHoldPaymentInfo = null;
+        if (isset($json['on_hold_payment_info'])) {
+            $onHoldPaymentInfo = json_encode($json['on_hold_payment_info']);
+        }
+        // Use requested_room_type_id if present, else fallback to room_type_id
+        $requestedRoomTypeId = isset($json['requested_room_type_id']) ? $json['requested_room_type_id'] : (isset($json['room_type_id']) ? $json['room_type_id'] : null);
+
+        // Debug logging
+        error_log("Determined requestedRoomTypeId: " . $requestedRoomTypeId);
+
+        if (!$requestedRoomTypeId) {
+            echo json_encode(["success" => false, "message" => "Missing room_type_id or requested_room_type_id"]);
+            return;
+        }
+
+        $sql = "INSERT INTO Reservation (user_id, reservation_status_id, guest_id, requested_room_type_id, reservation_type, check_in_date, check_out_date, on_hold_payment_info)
+        VALUES (:user_id, :reservation_status_id, :guest_id, :requested_room_type_id, :reservation_type, :check_in_date, :check_out_date, :on_hold_payment_info)";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(':user_id', $userId);
         $stmt->bindParam(':reservation_status_id', $reservation_status_id);
         $stmt->bindParam(':guest_id', $json['guest_id']);
-        $stmt->bindParam(':requested_room_type_id', $json['room_type_id']);
+        $stmt->bindParam(':requested_room_type_id', $requestedRoomTypeId);
         $stmt->bindParam(':reservation_type', $reservation_type);
         $stmt->bindParam(':check_in_date', $json['check_in_date']);
         $stmt->bindParam(':check_out_date', $json['check_out_date']);
+        $stmt->bindParam(':on_hold_payment_info', $onHoldPaymentInfo);
         $stmt->execute();
 
         $returnValue = 0;
@@ -262,62 +287,68 @@ class Reservation
                 }
             }
 
-            // --- AUTO BILLING: FULL AMOUNT, PARTIAL PAYMENT ---
-            // Only insert billing if one does not already exist for this reservation
-            $sqlCheckBill = "SELECT COUNT(*) FROM Billing WHERE reservation_id = :reservation_id AND is_deleted = 0";
-            $stmtCheckBill = $db->prepare($sqlCheckBill);
-            $stmtCheckBill->bindParam(":reservation_id", $reservationId);
-            $stmtCheckBill->execute();
-            $billingExists = $stmtCheckBill->fetchColumn();
-            if (!$billingExists) {
-                // Get total price for all rooms in this reservation
-                $sqlRooms = "SELECT SUM(COALESCE(rt_rr.price_per_stay, rt_r.price_per_stay)) AS total_price
-                FROM Reservation res
-                LEFT JOIN ReservedRoom rr ON res.reservation_id = rr.reservation_id AND rr.is_deleted = 0
-                LEFT JOIN Room r ON rr.room_id = r.room_id
-                LEFT JOIN RoomType rt_rr ON rr.room_type_id = rt_rr.room_type_id
-                LEFT JOIN RoomType rt_r ON r.room_type_id = rt_r.room_type_id
-                WHERE res.reservation_id = :reservation_id";
-                $stmtRooms = $db->prepare($sqlRooms);
-                $stmtRooms->bindParam(":reservation_id", $reservationId);
-                $stmtRooms->execute();
-                $rowRooms = $stmtRooms->fetch(PDO::FETCH_ASSOC);
-                $total_price = ($rowRooms && isset($rowRooms['total_price'])) ? floatval($rowRooms['total_price']) : 0;
-                $partial_amount = $total_price * 0.5;
-                // Insert billing with FULL price, PARTIAL status (id=3)
-                $sqlBill = "INSERT INTO Billing (reservation_id, billing_status_id, total_amount, billing_date) VALUES (:reservation_id, :billing_status_id, :total_amount, NOW())";
-                $stmtBill = $db->prepare($sqlBill);
-                $billing_status_id = 3; // PARTIAL
-                $stmtBill->bindParam(":reservation_id", $reservationId);
-                $stmtBill->bindParam(":billing_status_id", $billing_status_id);
-                $stmtBill->bindParam(":total_amount", $total_price);
-                $stmtBill->execute();
+            // --- AUTO BILLING: ONLY FOR CONFIRMED/ADMIN BOOKINGS ---
+            if ($reservation_type !== 'online' && $reservation_status_id != 1) {
+                // Only insert billing if one does not already exist for this reservation
+                $sqlCheckBill = "SELECT COUNT(*) FROM Billing WHERE reservation_id = :reservation_id AND is_deleted = 0";
+                $stmtCheckBill = $db->prepare($sqlCheckBill);
+                $stmtCheckBill->bindParam(":reservation_id", $reservationId);
+                $stmtCheckBill->execute();
+                $billingExists = $stmtCheckBill->fetchColumn();
+                if (!$billingExists) {
+                    // Get total price for all rooms in this reservation
+                    $sqlRooms = "SELECT SUM(COALESCE(rt_rr.price_per_stay, rt_r.price_per_stay)) AS total_price
+                    FROM Reservation res
+                    LEFT JOIN ReservedRoom rr ON res.reservation_id = rr.reservation_id AND rr.is_deleted = 0
+                    LEFT JOIN Room r ON rr.room_id = r.room_id
+                    LEFT JOIN RoomType rt_rr ON rr.room_type_id = rt_rr.room_type_id
+                    LEFT JOIN RoomType rt_r ON r.room_type_id = rt_r.room_type_id
+                    WHERE res.reservation_id = :reservation_id";
+                    $stmtRooms = $db->prepare($sqlRooms);
+                    $stmtRooms->bindParam(":reservation_id", $reservationId);
+                    $stmtRooms->execute();
+                    $rowRooms = $stmtRooms->fetch(PDO::FETCH_ASSOC);
+                    $total_price = ($rowRooms && isset($rowRooms['total_price'])) ? floatval($rowRooms['total_price']) : 0;
+                    $partial_amount = $total_price * 0.5;
+                    // Insert billing with FULL price, PARTIAL status (id=3)
+                    $sqlBill = "INSERT INTO Billing (reservation_id, billing_status_id, total_amount, billing_date) VALUES (:reservation_id, :billing_status_id, :total_amount, NOW())";
+                    $stmtBill = $db->prepare($sqlBill);
+                    $billing_status_id = 3; // PARTIAL
+                    $stmtBill->bindParam(":reservation_id", $reservationId);
+                    $stmtBill->bindParam(":billing_status_id", $billing_status_id);
+                    $stmtBill->bindParam(":total_amount", $total_price);
+                    $stmtBill->execute();
 
-                // Get the billing_id just created
-                $billingId = $db->lastInsertId();
-                // Insert payment for 50% (partial)
-                if ($billingId && $partial_amount > 0) {
-                    // Use sub_method_id from frontend if provided, else default to 1 (GCash)
-                    $sub_method_id = 1;
-                    if (isset($json['sub_method_id']) && is_numeric($json['sub_method_id'])) {
-                        $sub_method_id = intval($json['sub_method_id']);
+                    // Get the billing_id just created
+                    $billingId = $db->lastInsertId();
+                    // Insert payment for 50% (partial)
+                    if ($billingId && $partial_amount > 0) {
+                        // Use sub_method_id from frontend if provided, else default to 1 (GCash)
+                        $sub_method_id = 1;
+                        if (isset($json['sub_method_id']) && is_numeric($json['sub_method_id'])) {
+                            $sub_method_id = intval($json['sub_method_id']);
+                        }
+                        $sqlPay = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, is_deleted) VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, NOW(), :notes, :reference_number, 0)";
+                        $stmtPay = $db->prepare($sqlPay);
+                        $stmtPay->bindParam(":user_id", $userId);
+                        $stmtPay->bindParam(":billing_id", $billingId);
+                        $stmtPay->bindParam(":reservation_id", $reservationId);
+                        $stmtPay->bindParam(":sub_method_id", $sub_method_id);
+                        $stmtPay->bindParam(":amount_paid", $partial_amount);
+                        $note = "Partial/Downpayment (auto)";
+                        $stmtPay->bindParam(":notes", $note);
+                        $reference_number = isset($json['reference_number']) ? $json['reference_number'] : null;
+                        $stmtPay->bindParam(":reference_number", $reference_number);
+                        $stmtPay->execute();
                     }
-                    $sqlPay = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, is_deleted) VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, NOW(), :notes, :reference_number, 0)";
-                    $stmtPay = $db->prepare($sqlPay);
-                    $stmtPay->bindParam(":user_id", $userId);
-                    $stmtPay->bindParam(":billing_id", $billingId);
-                    $stmtPay->bindParam(":reservation_id", $reservationId);
-                    $stmtPay->bindParam(":sub_method_id", $sub_method_id);
-                    $stmtPay->bindParam(":amount_paid", $partial_amount);
-                    $note = "Partial/Downpayment (auto)";
-                    $stmtPay->bindParam(":notes", $note);
-                    $reference_number = isset($json['reference_number']) ? $json['reference_number'] : null;
-                    $stmtPay->bindParam(":reference_number", $reference_number);
-                    $stmtPay->execute();
                 }
             }
 
             $this->logStatusHistory($reservationId, $reservation_status_id, $userId);
+        } else {
+            // Debug: log insertion failure
+            error_log("Reservation insertion failed. SQL Error: " . print_r($stmt->errorInfo(), true));
+            $returnValue = ["success" => false, "message" => "Failed to insert reservation", "error" => $stmt->errorInfo()];
         }
         echo json_encode($returnValue);
     }
@@ -512,6 +543,90 @@ class Reservation
         $stmt->execute();
     }
 
+    // Confirm and create billing for pending online booking with on-hold payment info
+    function confirmAndCreateBilling()
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+        $reservation_id = isset($_POST['reservation_id']) ? $_POST['reservation_id'] : null;
+        if (!$reservation_id) {
+            echo json_encode(["success" => false, "message" => "Missing reservation_id."]);
+            return;
+        }
+        // Fetch reservation
+        $sql = "SELECT * FROM Reservation WHERE reservation_id = :reservation_id AND is_deleted = 0";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(":reservation_id", $reservation_id);
+        $stmt->execute();
+        $reservation = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$reservation) {
+            echo json_encode(["success" => false, "message" => "Reservation not found."]);
+            return;
+        }
+        if ($reservation['reservation_status_id'] != 1) { // 1 = pending
+            echo json_encode(["success" => false, "message" => "Reservation is not pending."]);
+            return;
+        }
+        if (empty($reservation['on_hold_payment_info'])) {
+            echo json_encode(["success" => false, "message" => "No on-hold payment info found."]);
+            return;
+        }
+        $onHold = json_decode($reservation['on_hold_payment_info'], true);
+        if (!$onHold || !isset($onHold['amount'])) {
+            echo json_encode(["success" => false, "message" => "Invalid on-hold payment info."]);
+            return;
+        }
+        // Calculate total price for billing
+        $sqlRooms = "SELECT SUM(COALESCE(rt_rr.price_per_stay, rt_r.price_per_stay)) AS total_price
+            FROM Reservation res
+            LEFT JOIN ReservedRoom rr ON res.reservation_id = rr.reservation_id AND rr.is_deleted = 0
+            LEFT JOIN Room r ON rr.room_id = r.room_id
+            LEFT JOIN RoomType rt_rr ON rr.room_type_id = rt_rr.room_type_id
+            LEFT JOIN RoomType rt_r ON r.room_type_id = rt_r.room_type_id
+            WHERE res.reservation_id = :reservation_id";
+        $stmtRooms = $db->prepare($sqlRooms);
+        $stmtRooms->bindParam(":reservation_id", $reservation_id);
+        $stmtRooms->execute();
+        $rowRooms = $stmtRooms->fetch(PDO::FETCH_ASSOC);
+        $total_price = ($rowRooms && isset($rowRooms['total_price'])) ? floatval($rowRooms['total_price']) : 0;
+        // Insert billing (status: PARTIAL, id=3)
+        $sqlBill = "INSERT INTO Billing (reservation_id, billing_status_id, total_amount, billing_date) VALUES (:reservation_id, :billing_status_id, :total_amount, NOW())";
+        $stmtBill = $db->prepare($sqlBill);
+        $billing_status_id = 3; // PARTIAL
+        $stmtBill->bindParam(":reservation_id", $reservation_id);
+        $stmtBill->bindParam(":billing_status_id", $billing_status_id);
+        $stmtBill->bindParam(":total_amount", $total_price);
+        $stmtBill->execute();
+        $billingId = $db->lastInsertId();
+        // Insert payment using on-hold info
+        if ($billingId && $onHold['amount'] > 0) {
+            $sqlPay = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, proof_of_payment_url, is_deleted) VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, NOW(), :notes, :reference_number, :proof_of_payment_url, 0)";
+            $stmtPay = $db->prepare($sqlPay);
+            $user_id = $reservation['user_id'];
+            $sub_method_id = isset($onHold['sub_method_id']) ? $onHold['sub_method_id'] : 1;
+            $stmtPay->bindParam(":user_id", $user_id);
+            $stmtPay->bindParam(":billing_id", $billingId);
+            $stmtPay->bindParam(":reservation_id", $reservation_id);
+            $stmtPay->bindParam(":sub_method_id", $sub_method_id);
+            $stmtPay->bindParam(":amount_paid", $onHold['amount']);
+            $stmtPay->bindParam(":notes", $onHold['notes']);
+            $stmtPay->bindParam(":reference_number", $onHold['reference_number']);
+            $proof_url = isset($onHold['proof_of_payment_url']) ? $onHold['proof_of_payment_url'] : null;
+            $stmtPay->bindParam(":proof_of_payment_url", $proof_url);
+            $stmtPay->execute();
+        }
+        // Update reservation: set status to confirmed (2), clear on_hold_payment_info
+        $sqlUpdate = "UPDATE Reservation SET reservation_status_id = 2, on_hold_payment_info = NULL, updated_at = NOW() WHERE reservation_id = :reservation_id";
+        $stmtUpdate = $db->prepare($sqlUpdate);
+        $stmtUpdate->bindParam(":reservation_id", $reservation_id);
+        $stmtUpdate->execute();
+        // Log status history
+        $this->logStatusHistory($reservation_id, 2, $reservation['user_id']);
+        echo json_encode(["success" => true]);
+    }
+
+
     // Method to delete a reservation (soft delete)
     function deleteReservation($json)
     {
@@ -654,5 +769,8 @@ switch ($operation) {
         break;
     case "getAllReservationStatusHistory":
         $reservation->getAllReservationStatusHistory();
+        break;
+    case "confirmAndCreateBilling":
+        $reservation->confirmAndCreateBilling();
         break;
 }
