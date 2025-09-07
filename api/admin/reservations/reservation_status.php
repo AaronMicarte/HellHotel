@@ -297,6 +297,82 @@ class ReservationStatus
         $returnValue = $stmt->rowCount() > 0 ? 1 : 0;
         echo json_encode($returnValue);
     }
+
+    // Get reservation status statistics (counts for each status)
+    function getReservationStatusStats()
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+
+        $sql = "
+            SELECT 
+                rs.reservation_status,
+                rs.reservation_status_id,
+                COUNT(r.reservation_id) as count
+            FROM reservationstatus rs
+            LEFT JOIN reservation r ON rs.reservation_status_id = r.reservation_status_id 
+                AND r.is_deleted = 0
+            WHERE rs.is_deleted = 0
+            GROUP BY rs.reservation_status_id, rs.reservation_status
+            ORDER BY rs.reservation_status_id
+        ";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Format the response to include total and individual status counts
+        $stats = [
+            'total' => 0,
+            'by_status' => []
+        ];
+
+        foreach ($rows as $row) {
+            $status = strtolower($row['reservation_status']);
+            $count = (int)$row['count'];
+
+            $stats['by_status'][$status] = $count;
+            $stats['total'] += $count;
+        }
+
+        echo json_encode($stats);
+    }
+
+    // Check and update overdue reservations
+    function updateOverdueReservations()
+    {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+
+        // Find reservations that should be marked as overdue
+        // (past checkout date and not already checked-out, cancelled, or overdue)
+        $sql = "
+            UPDATE reservation r
+            JOIN reservationstatus rs ON r.reservation_status_id = rs.reservation_status_id
+            SET r.reservation_status_id = (
+                SELECT reservation_status_id 
+                FROM reservationstatus 
+                WHERE reservation_status = 'overdue' 
+                AND is_deleted = 0
+            ),
+            r.updated_at = NOW()
+            WHERE r.check_out_date < CURDATE() 
+              AND rs.reservation_status IN ('pending', 'confirmed', 'checked-in')
+              AND r.is_deleted = 0
+        ";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        $updatedCount = $stmt->rowCount();
+
+        echo json_encode([
+            'success' => true,
+            'updated_count' => $updatedCount,
+            'message' => "Updated $updatedCount reservations to overdue status"
+        ]);
+    }
 }
 
 // Request handling
@@ -325,6 +401,12 @@ switch ($operation) {
         break;
     case "getAllStatusHistory":
         $resStatus->getAllStatusHistory();
+        break;
+    case "getReservationStatusStats":
+        $resStatus->getReservationStatusStats();
+        break;
+    case "updateOverdueReservations":
+        $resStatus->updateOverdueReservations();
         break;
     case "insertStatus":
         $resStatus->insertStatus($json);

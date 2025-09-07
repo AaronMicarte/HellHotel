@@ -443,6 +443,10 @@ document.addEventListener("DOMContentLoaded", () => {
     loadStatuses().then(() => {
         updateStatusFilter(); // Call this after statuses are loaded
     });
+
+    // Load reservation stats immediately
+    updateReservationStatsOverview();
+
     displayReservations();
 
     // --- Event Listeners with null checks ---
@@ -539,6 +543,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (dateTo) dateTo.value = "";
             const searchInput = document.getElementById("searchReservation");
             if (searchInput) searchInput.value = "";
+
+            // Refresh both reservations and stats
+            updateReservationStatsOverview();
             displayReservations();
         });
     }
@@ -575,7 +582,7 @@ async function displayReservations(data) {
         const response = await axios.get(`${BASE_URL}/reservations/reservations.php`, {
             params: {
                 operation: "getAllReservations",
-                view: "confirmed"  // Only show confirmed bookings (walk-in + online bookings that completed room assignment)
+                view: "confirmed"  // Show confirmed bookings + overdue (walk-in + online bookings that completed room assignment)
             }
         });
 
@@ -644,6 +651,7 @@ function getStatusBadge(status) {
     else if (status === 'checked-in') icon = '<i class="fas fa-door-open text-success"></i>';  // Green
     else if (status === 'checked-out') icon = '<i class="fas fa-sign-out-alt text-secondary"></i>';
     else if (status === 'cancelled') icon = '<i class="fas fa-times-circle text-danger"></i>';
+    else if (status === 'overdue') icon = '<i class="fas fa-exclamation-triangle text-danger"></i>';  // Red
 
     return `${icon} ${label}`;
 }
@@ -670,7 +678,15 @@ function renderStatusFlowIcons(res) {
     const canCheckIn = today >= checkInDate;
 
     let actions = [];
-    if (status === 'pending') {
+
+    // No actions for cancelled or overdue reservations
+    if (status === 'cancelled' || status === 'overdue') {
+        if (status === 'cancelled') {
+            actions.push('<span class="text-danger" title="Cancelled"><i class="fas fa-ban"></i></span>');
+        } else if (status === 'overdue') {
+            actions.push('<span class="text-danger" title="Overdue"><i class="fas fa-exclamation-triangle"></i></span>');
+        }
+    } else if (status === 'pending') {
         actions.push('<i class="fas fa-check-circle text-info cursor-pointer" title="Confirm" onclick="changeStatusFlow(' + id + ', \'confirmed\')" style="cursor:pointer;margin-right:5px;"></i>');
         actions.push('<i class="fas fa-times-circle text-danger cursor-pointer" title="Cancel" onclick="changeStatusFlow(' + id + ', \'cancelled\')" style="cursor:pointer;margin-right:5px;"></i>');
     } else if (status === 'confirmed') {
@@ -684,8 +700,6 @@ function renderStatusFlowIcons(res) {
         actions.push('<i class="fas fa-sign-out-alt text-primary cursor-pointer" title="Check-out" onclick="changeStatusFlow(' + id + ', \'checked-out\')" style="cursor:pointer;margin-right:5px;"></i>');
     } else if (status === 'checked-out') {
         actions.push('<span class="text-success" title="Completed"><i class="fas fa-check-circle"></i></span>');
-    } else if (status === 'cancelled') {
-        actions.push('<span class="text-danger" title="Cancelled"><i class="fas fa-ban"></i></span>');
     }
     return actions.length ? actions.join(' ') : '<span class="text-muted">—</span>';
 }
@@ -862,8 +876,12 @@ function displayReservationsTable(reservations) {
         const isAssigned = booking.all_room_numbers && booking.all_room_numbers.trim() !== '';
         const guestName = booking.guest_name || `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || 'Unknown Guest';
 
+        // Add background color class for overdue reservations
+        const isOverdue = (booking.reservation_status || '').toLowerCase() === 'overdue';
+        const rowClass = isOverdue ? 'table-danger-subtle' : '';
+
         return `
-            <tr data-reservation-id="${booking.reservation_id}">
+            <tr data-reservation-id="${booking.reservation_id}" class="${rowClass}">
                 <td>
                     <strong>#${booking.reservation_id}</strong>
                     <br>
@@ -2046,11 +2064,68 @@ async function filterReservations() {
 }
 
 // --- Reservation Stats Overview ---
-function updateReservationStatsOverview(reservations) {
+// Fetch reservation status statistics from API
+async function updateReservationStatsOverview(reservations = null) {
+    try {
+        // First check for overdue reservations and update them
+        await checkAndUpdateOverdueReservations();
+
+        // Then fetch updated stats from API
+        const response = await axios.get(`${BASE_URL}/reservations/reservation_status.php`, {
+            params: { operation: 'getReservationStatusStats' }
+        });
+
+        if (response.data && typeof response.data === 'object') {
+            const stats = response.data;
+
+            // Update the stats in the UI
+            const total = stats.total || 0;
+            const byStatus = stats.by_status || {};
+
+            document.getElementById("statTotalReservations").textContent = total;
+            document.getElementById("statCheckedIn").textContent = byStatus['checked-in'] || 0;
+            document.getElementById("statCheckedOut").textContent = byStatus['checked-out'] || 0;
+            document.getElementById("statReserved").textContent = (byStatus['confirmed'] || 0);
+            document.getElementById("statPending").textContent = byStatus['pending'] || 0;
+            document.getElementById("statCancelled").textContent = byStatus['cancelled'] || 0;
+            document.getElementById("statOverdue").textContent = byStatus['overdue'] || 0;
+
+            console.log("✅ Reservation stats updated from API:", stats);
+        } else {
+            console.warn("⚠️ Invalid stats response from API:", response.data);
+            // Fallback to manual calculation if API fails
+            updateReservationStatsManual(reservations);
+        }
+    } catch (error) {
+        console.error("❌ Error fetching reservation stats:", error);
+    }
+}
+
+// Check and update overdue reservations
+async function checkAndUpdateOverdueReservations() {
+    try {
+        const response = await axios.get(`${BASE_URL}/reservations/reservation_status.php`, {
+            params: { operation: 'updateOverdueReservations' }
+        });
+
+        if (response.data && response.data.success) {
+            const updatedCount = response.data.updated_count || 0;
+            if (updatedCount > 0) {
+                console.log(`✅ Updated ${updatedCount} reservations to overdue status`);
+            }
+        }
+    } catch (error) {
+        console.error("❌ Error checking overdue reservations:", error);
+    }
+}
+
+// Fallback manual calculation (original logic)
+function updateReservationStatsManual(reservations) {
     // Defensive: always use array
     reservations = Array.isArray(reservations) ? reservations : [];
     let total = reservations.length;
-    let checkedIn = 0, checkedOut = 0, reserved = 0, pending = 0, cancelled = 0;
+    let checkedIn = 0, checkedOut = 0, reserved = 0, pending = 0, cancelled = 0, overdue = 0;
+
     reservations.forEach(r => {
         const status = (r.reservation_status || r.room_status || '').toLowerCase();
         if (status === "checked-in") checkedIn++;
@@ -2058,13 +2133,18 @@ function updateReservationStatsOverview(reservations) {
         else if (status === "confirmed") reserved++;
         else if (status === "pending") pending++;
         else if (status === "cancelled") cancelled++;
+        else if (status === "overdue") overdue++;
     });
+
     document.getElementById("statTotalReservations").textContent = total;
     document.getElementById("statCheckedIn").textContent = checkedIn;
     document.getElementById("statCheckedOut").textContent = checkedOut;
     document.getElementById("statReserved").textContent = reserved;
     document.getElementById("statPending").textContent = pending;
     document.getElementById("statCancelled").textContent = cancelled;
+    document.getElementById("statOverdue").textContent = overdue;
+
+    console.log("📊 Reservation stats updated manually (fallback)");
 }
 
 /**

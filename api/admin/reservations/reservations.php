@@ -53,8 +53,8 @@ class Reservation
 
         // View-based filtering
         if ($viewFilter === 'confirmed') {
-            // Show all operational statuses (not pending)
-            $sql .= " AND rs.reservation_status IN ('confirmed', 'checked-in', 'checked-out', 'cancelled')";
+            // Show all operational statuses (not pending) - includes overdue
+            $sql .= " AND rs.reservation_status IN ('confirmed', 'checked-in', 'checked-out', 'cancelled', 'overdue')";
         } elseif ($viewFilter === 'pending') {
             $sql .= " AND rs.reservation_status = 'pending'";
         }

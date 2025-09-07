@@ -229,3 +229,51 @@ body.admin-page {
         margin-bottom: 1rem;
     }
 }
+
+/* Overdue Reservation Styling - Consistent for all overdue rows */
+.table-danger-subtle {
+    background-color: rgba(220, 53, 69, 0.08) !important;
+    border-left: 3px solid #dc3545;
+}
+
+.table-danger-subtle:hover {
+    background-color: rgba(220, 53, 69, 0.12) !important;
+}
+
+/* Enhanced overdue visual indicator with maximum specificity */
+tr.table-danger-subtle td {
+    position: relative;
+    background: rgba(220, 53, 69, 0.08) !important;
+    backdrop-filter: none !important;
+}
+
+tr.table-danger-subtle:hover td {
+    background: rgba(220, 53, 69, 0.12) !important;
+}
+
+tr.table-danger-subtle td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, #dc3545, #c82333);
+    border-radius: 0 2px 2px 0;
+    z-index: 2;
+}
+
+/* FORCE OVERRIDE: Ensure ALL overdue rows look identical regardless of striping */
+.table-striped tbody tr.table-danger-subtle:nth-of-type(odd) td,
+.table-striped tbody tr.table-danger-subtle:nth-of-type(even) td,
+.table tbody tr.table-danger-subtle td {
+    background: rgba(220, 53, 69, 0.08) !important;
+    background-color: rgba(220, 53, 69, 0.08) !important;
+}
+
+.table-striped tbody tr.table-danger-subtle:nth-of-type(odd):hover td,
+.table-striped tbody tr.table-danger-subtle:nth-of-type(even):hover td,
+.table tbody tr.table-danger-subtle:hover td {
+    background: rgba(220, 53, 69, 0.12) !important;
+    background-color: rgba(220, 53, 69, 0.12) !important;
+}
