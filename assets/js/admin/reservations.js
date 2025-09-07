@@ -7,7 +7,9 @@ async function loadPaymentMethodsDropdown() {
     if (!select) return;
     select.innerHTML = '<option value="">Loading...</option>';
     try {
-        const res = await axios.post(`${BASE_URL}/payments/sub-method.php`, new URLSearchParams({ operation: "getAllSubMethods" }));
+        const res = await axios.get(`${BASE_URL}/payments/payment_methods.php`, {
+            params: { operation: "getAllPaymentSubMethods" }
+        });
         const methods = Array.isArray(res.data) ? res.data : [];
         if (methods.length === 0) {
             select.innerHTML = '<option value="">No payment methods</option>';

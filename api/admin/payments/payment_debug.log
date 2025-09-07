@@ -53,3 +53,7 @@
 2025-09-04T18:45:34+02:00 insertOnHoldPayment payload: {"reservation_id":"148","billing_id":"113","sub_method_id":"1","amount_paid":249,"payment_date":"2025-09-04","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
 2025-09-04T18:45:34+02:00 File uploaded: assets/images/payment/1757004334_redhorse.jpg
 2025-09-04T18:45:34+02:00 Payment inserted successfully with ID: 110
+2025-09-07T12:09:44+02:00 insertPayment payload: {"user_id":2,"billing_id":"114","reservation_id":"149","sub_method_id":1,"amount_paid":"99.5","payment_date":"2025-09-07 18:09:44","notes":"Fully Paid","reference_number":"321123"}
+2025-09-07T12:12:01+02:00 insertOnHoldPayment payload: {"reservation_id":"150","billing_id":"115","sub_method_id":"1","amount_paid":99.5,"payment_date":"2025-09-07","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-07T12:12:01+02:00 File uploaded: assets/images/payment/1757239921_tanduay-jr.jpg
+2025-09-07T12:12:01+02:00 Payment inserted successfully with ID: 113

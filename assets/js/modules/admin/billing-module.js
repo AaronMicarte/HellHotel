@@ -283,14 +283,25 @@ const getSubMethodIdByName = async (methodName) => {
     try {
         // Try exact match first
         let response = await axios.get(
-            `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/sub-method.php`,
+            `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php`,
             {
                 params: {
-                    operation: "getSubMethodByName",
-                    name: methodName
+                    operation: "getSubMethodByName"
                 }
             }
         );
+
+        // Send the method name in POST data for the new API structure
+        if (response.config.params.operation === "getSubMethodByName") {
+            const formData = new FormData();
+            formData.append('operation', 'getSubMethodByName');
+            formData.append('json', JSON.stringify({ name: methodName }));
+
+            response = await axios.post(
+                `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php`,
+                formData
+            );
+        }
         // Accept both array/object response
         if (Array.isArray(response.data) && response.data.length > 0) {
             return response.data[0].sub_method_id;
@@ -301,14 +312,13 @@ const getSubMethodIdByName = async (methodName) => {
         // Try fallback: capitalize and replace underscores/hyphens with spaces
         const fallbackName = methodName.replace(/[_-]/g, " ").replace(/\b\w/g, l => l.toUpperCase());
         if (fallbackName !== methodName) {
-            response = await axios.get(
-                `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/sub-method.php`,
-                {
-                    params: {
-                        operation: "getSubMethodByName",
-                        name: fallbackName
-                    }
-                }
+            const formData = new FormData();
+            formData.append('operation', 'getSubMethodByName');
+            formData.append('json', JSON.stringify({ name: fallbackName }));
+
+            response = await axios.post(
+                `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php`,
+                formData
             );
             if (Array.isArray(response.data) && response.data.length > 0) {
                 return response.data[0].sub_method_id;
@@ -319,8 +329,8 @@ const getSubMethodIdByName = async (methodName) => {
         }
         // Try fallback: case-insensitive match from all sub-methods
         const allMethodsResp = await axios.get(
-            `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/sub-method.php`,
-            { params: { operation: "getAllSubMethods" } }
+            `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php`,
+            { params: { operation: "getAllPaymentSubMethods" } }
         );
         const allMethods = Array.isArray(allMethodsResp.data) ? allMethodsResp.data : [];
         const found = allMethods.find(
@@ -346,8 +356,8 @@ const populatePaymentMethodSelect = async () => {
     try {
         // Fetch all sub-methods (with their categories)
         const response = await axios.get(
-            `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/sub-method.php`,
-            { params: { operation: "getAllSubMethods" } }
+            `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php`,
+            { params: { operation: "getAllPaymentSubMethods" } }
         );
         const subMethods = Array.isArray(response.data) ? response.data : [];
 
@@ -627,8 +637,8 @@ export const recordPayment = async () => {
         // Extra debug: log all available sub-methods for troubleshooting
         try {
             const allMethods = await axios.get(
-                `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/sub-method.php`,
-                { params: { operation: "getAllSubMethods" } }
+                `${window.location.origin}/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php`,
+                { params: { operation: "getAllPaymentSubMethods" } }
             );
             console.warn("[BillingModule] Available payment methods from API:", allMethods.data);
         } catch (err) {

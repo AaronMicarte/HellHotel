@@ -44,7 +44,9 @@ loadIdTypes();
 // Load payment methods (handle 404 and missing select gracefully)
 async function loadPaymentMethods() {
     try {
-        const { data } = await axios.get('/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php');
+        const { data } = await axios.get('/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php', {
+            params: { operation: 'getAllPaymentSubMethods' }
+        });
         const select = document.getElementById('paymentMethod');
         if (!select) return;
         select.innerHTML = '<option value="">Select Method</option>' +
@@ -746,15 +748,15 @@ let selectedPaymentReferenceNumber = '';
 
 async function loadPaymentCategoriesAndMethods() {
     try {
-        // Load categories
-        const catRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/payments/sub-method-category.php', {
-            params: { operation: 'getAllCategories' }
+        // Load categories using new API
+        const catRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php', {
+            params: { operation: 'getAllPaymentCategories' }
         });
         paymentCategories = Array.isArray(catRes.data) ? catRes.data : [];
 
-        // Load sub-methods
-        const subRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/payments/sub-method.php', {
-            params: { operation: 'getAllSubMethods' }
+        // Load sub-methods using new API
+        const subRes = await axios.get('/Hotel-Reservation-Billing-System/api/admin/payments/payment_methods.php', {
+            params: { operation: 'getAllPaymentSubMethods' }
         });
         paymentSubMethods = Array.isArray(subRes.data) ? subRes.data : [];
 
