@@ -5,6 +5,7 @@ function loadSidebar() {
         .then(res => res.text())
         .then(html => {
             container.innerHTML = html;
+            filterSidebarByRole();
             highlightActiveSidebar();
             // Dropdown logic
             document.querySelectorAll('#sidebar-container .sidebar-dropdown > a').forEach(drop => {
@@ -30,6 +31,28 @@ function loadSidebar() {
                 }
             });
         });
+    // Hide sidebar items not allowed for front desk
+    function filterSidebarByRole() {
+        let user = null;
+        try {
+            user = JSON.parse(sessionStorage.getItem('admin_user'));
+        } catch (e) { }
+        if (!user || !user.role_type) return;
+        if (user.role_type === 'front desk') {
+            // List of selectors for items to hide for front desk
+            const hideSelectors = [
+                'a[href="add-users.html"]',
+                'a[href="addon-order-history.html"]',
+                'a[href="addons.html"]',
+            ];
+            hideSelectors.forEach(sel => {
+                document.querySelectorAll('#sidebar-container ' + sel).forEach(a => {
+                    const li = a.closest('li');
+                    if (li) li.style.display = 'none';
+                });
+            });
+        }
+    }
 }
 
 // Highlight the active sidebar link

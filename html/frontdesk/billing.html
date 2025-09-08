@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing Management - HellHotel</title>
+
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+
+    <!-- In your HTML head -->
+    <script src="../../assets/js/sidebar-loader.js" defer></script>
+</head>
+
+<body class="admin-page">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <script src="../../assets/js/sidebar-loader.js"></script>
+
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4>Billing Management</h4>
+                </div>
+
+                <div class="nav-right">
+                    <button id="refreshBtn" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                            <span id="userName">Admin</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><span class="dropdown-item-text">Role: <span id="userRole">admin</span></span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>
+                                    Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Billing Content -->
+            <div class="dashboard-content">
+                <!-- Action Bar -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="text" id="searchBilling" class="form-control"
+                                placeholder="Search by guest name, billing ID or reservation ID...">
+                            <button id="searchBtn" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <!-- Add Reservation ID filter -->
+                            <input type="number" id="reservationIdFilter" class="form-control ms-2"
+                                placeholder="Reservation ID">
+                            <button id="filterByReservationBtn" class="btn btn-secondary">
+                                <i class="fas fa-filter"></i> By Reservation
+                            </button>
+                        </div>
+                    </div>
+                    <!-- <div class="col-md-4 text-end">
+                        <button id="addPaymentBtn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Payment
+                        </button>
+                    </div> -->
+                </div>
+
+                <!-- Filters -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-filter"></i> Filters</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label for="statusFilter" class="form-label">Status</label>
+                                        <select id="statusFilter" class="form-select">
+                                            <option value="">All Statuses</option>
+                                            <option value="paid">Paid</option>
+                                            <option value="unpaid">Unpaid</option>
+                                            <option value="partial">Partial</option>
+                                            <option value="overdue">Overdue</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="dateFrom" class="form-label">From Date</label>
+                                        <input type="text" id="dateFrom" class="form-control datepicker"
+                                            placeholder="From Date">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="dateTo" class="form-label">To Date</label>
+                                        <input type="text" id="dateTo" class="form-control datepicker"
+                                            placeholder="To Date">
+                                    </div>
+                                    <div class="col-md-3 d-flex align-items-end">
+                                        <button id="applyFilters" class="btn btn-primary w-100">
+                                            <i class="fas fa-check"></i> Apply Filters
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-primary">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="totalBillings">0</h3>
+                                <p>Total Billings</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-success">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="paidBillings">0</h3>
+                                <p>Paid Billings</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-warning">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="partialBillings">0</h3>
+                                <p>Partial Payments</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-danger">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="unpaidBillings">0</h3>
+                                <p>Unpaid Billings</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Table -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-file-invoice-dollar"></i> Billings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Guest</th>
+                                                <th>Reservation</th>
+                                                <th>Date</th>
+                                                <!-- Optionally change to: <th>Billing Date (Check-out)</th> -->
+                                                <th>Room</th>
+                                                <th>Total Bill</th>
+                                                <th>Paid</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="billingTableBody">
+                                            <!-- Populated by JS -->
+                                            <!-- <tr><td colspan="9" class="text-center">Loading billing data...</td></tr> -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div class="pagination-info">
+                                        Showing <span id="paginationFrom">0</span> to <span id="paginationTo">0</span>
+                                        of <span id="paginationTotal">0</span> billings
+                                    </div>
+                                    <nav aria-label="Billing pagination">
+                                        <ul id="billingPagination" class="pagination">
+                                            <!-- Pagination will be generated by JS -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="paymentModalLabel">
+                        <i class="fas fa-money-bill-wave me-2"></i>Record Payment
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="paymentForm">
+                        <input type="hidden" id="billingId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="reservationSelect" class="form-label">
+                                    <i class="fas fa-calendar-check me-1 text-primary"></i>Reservation
+                                </label>
+                                <select class="form-select" id="reservationSelect" required>
+                                    <option value="">-- Select Reservation --</option>
+                                    <!-- Options loaded dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="guestName" class="form-label">
+                                    <i class="fas fa-user me-1 text-primary"></i>Guest
+                                </label>
+                                <input type="text" class="form-control bg-light" id="guestName" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="totalAmount" class="form-label">
+                                    <i class="fas fa-file-invoice-dollar me-1 text-primary"></i>Total Amount
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i
+                                            class="fas fa-coins text-warning"></i></span>
+                                    <input type="text" class="form-control bg-light fw-bold" id="totalAmount" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="remainingAmount" class="form-label">
+                                    <i class="fas fa-wallet me-1 text-primary"></i>Remaining Amount
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i
+                                            class="fas fa-hourglass-half text-danger"></i></span>
+                                    <input type="text" class="form-control bg-light fw-bold" id="remainingAmount"
+                                        readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="paymentAmount" class="form-label">
+                                    <i class="fas fa-money-bill-1-wave me-1 text-success"></i>Payment Amount
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i
+                                            class="fas fa-peso-sign text-success"></i></span>
+                                    <input type="number" class="form-control fw-bold" id="paymentAmount" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="paymentMethod" class="form-label">
+                                    <i class="fas fa-credit-card me-1 text-primary"></i>Payment Method
+                                </label>
+                                <select class="form-select" id="paymentMethod" required>
+                                    <option value="">-- Select Payment Method --</option>
+                                    <!-- Options loaded dynamically by JS -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Empty column for spacing when reference number is hidden -->
+                            </div>
+                            <!-- Reference Number Field (for GCash/PayMaya) - Full width row -->
+                            <div class="col-12" id="referenceNumberContainer" style="display: none;">
+                                <label for="paymentReferenceNumber" class="form-label">
+                                    <i class="fas fa-receipt me-1 text-success"></i>Reference Number
+                                </label>
+                                <input type="text" class="form-control" id="paymentReferenceNumber"
+                                    placeholder="Enter payment reference number">
+                                <div class="form-text">Required for GCash and PayMaya payments</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="paymentNotes" class="form-label">
+                                    <i class="fas fa-sticky-note me-1 text-primary"></i>Notes
+                                </label>
+                                <textarea class="form-control" id="paymentNotes" rows="3"
+                                    placeholder="Add any notes for this payment..."></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" id="savePaymentBtn" class="btn btn-success">
+                        <i class="fas fa-check-circle me-1"></i>Record Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Billing Details Modal -->
+    <div class="modal fade" id="billingDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Billing Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="billingDetails">
+                        <!-- Populated by JS: room price, addons, total bill, etc -->
+                    </div>
+                    <div class="mt-4">
+                        <h6>Payment History</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentHistoryBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="printReceiptBtn">
+                        <i class="fas fa-print"></i> Print Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module" src="../../assets/js/modules/admin/auth-module.js"></script>
+    <script src="../../assets/js/admin/auth.js"></script>
+    <script type="module" src="../../assets/js/admin/billing.js"></script>
+</body>
+
+</html>

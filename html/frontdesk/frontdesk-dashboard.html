@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - HellHotel</title>
+
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+
+    <!-- In your HTML head -->
+    <script src="../../assets/js/sidebar-loader.js" defer></script>
+    <!-- Add Chart.js CDN in head -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="admin-page enhanced-dashboard-bg">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <script src="../../assets/js/sidebar-loader.js"></script>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4>Dashboard</h4>
+                </div>
+
+                <div class="nav-right">
+                    <button id="refreshBtn" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                            <span id="userName">Admin</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><span class="dropdown-item-text">Role: <span id="userRole">admin</span></span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>
+                                    Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content">
+                <!-- Stats Cards
+                <div class="row mb-4 g-4">
+                    <div class="col-md-3 col-6">
+                        <div class="stats-card shadow-sm hover-lift">
+                            <div class="stats-icon bg-primary bg-gradient">
+                                <i class="fas fa-bed"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="totalRooms">0</h3>
+                                <p>Total Rooms</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stats-card shadow-sm hover-lift">
+                            <div class="stats-icon bg-success bg-gradient">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="availableRooms">0</h3>
+                                <p>Available Rooms</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stats-card shadow-sm hover-lift">
+                            <div class="stats-icon bg-info bg-gradient">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="totalGuests">0</h3>
+                                <p>Total Guests</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stats-card shadow-sm hover-lift">
+                            <div class="stats-icon bg-warning bg-gradient">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="activeReservations">0</h3>
+                                <p>Active Reservations</p>
+                            </div>
+                        </div>
+                    </div>
+                </div> -->
+
+                <!-- Reservation Calendar -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5><i class="fas fa-calendar-alt"></i> Reservation Calendar</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="reservationCalendar" style="height:600px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Reservations -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5><i class="fas fa-clock"></i> Recent Reservations</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Guest</th>
+                                                <th>Check-in</th>
+                                                <th>Check-out</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recentReservationsBody">
+                                            <tr>
+                                                <td colspan="5" class="text-center">Loading...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="../../assets/js/admin/auth.js"></script>
+    <script src="../../assets/js/admin/dashboard-stats.js"></script>
+    <script src="../../assets/js/admin/reservations-calendar.js"></script>
+    <script>
+        // Check auth before loading dashboard
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.adminAuth) {
+                console.error('Admin auth not initialized');
+                window.location.href = 'admin-login.html';
+                return;
+            }
+
+            // Require authentication
+            if (!window.adminAuth.requireAuth()) {
+                return; // Auth check will redirect if needed
+            }
+
+            // Set user info in UI
+            const user = window.adminAuth.getUser();
+            if (user) {
+                document.getElementById('userName').textContent = user.username;
+                document.getElementById('userRole').textContent = user.role_type || 'admin';
+            }
+
+            // Setup logout button
+            document.getElementById('logoutBtn').addEventListener('click', function (e) {
+                e.preventDefault();
+                window.adminAuth.logout();
+            });
+        });
+
+    </script>
+</body>
+
+</html>

@@ -443,6 +443,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         html += `<div><i class='fas fa-sign-in-alt text-success'></i> <span class='label'>Check-in</span><br><span class='value'>${formatDate(ev.start)}</span></div>`;
                         html += `<div><i class='fas fa-sign-out-alt text-danger'></i> <span class='label'>Check-out</span><br><span class='value'>${formatDate(checkOutDate)}</span></div>`;
                         html += `</div>`;
+                        // Add direct link to reservation details page
+                        html += `<div style='margin-bottom:18px;'><a href='/Hotel-Reservation-Billing-System/html/admin/reservation-details.html?reservation_id=${ev.extendedProps.reservation_id}' target='_blank' class='btn btn-outline-primary btn-sm'><i class='fas fa-link'></i> View Full Reservation</a></div>`;
                         // Show all rooms booked for this reservation
                         if (reservedRooms.length > 0) {
                             reservedRooms.forEach(room => {

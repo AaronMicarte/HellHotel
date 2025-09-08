@@ -13,57 +13,50 @@
             const data = response.data;
 
             if (data.status === 'success') {
-                // ### ROOM STATS ###
-                // Update room statistics
-                document.getElementById('totalRooms').textContent = data.stats.totalRooms || 0;
-                document.getElementById('availableRooms').textContent = data.stats.availableRooms || 0;
-
-                // ### GUEST STATS ###
-                // Update guest count
-                document.getElementById('totalGuests').textContent = data.stats.totalGuests || 0;
-
-                // ### RESERVATION STATS ###
-                // Update active reservations
-                document.getElementById('activeReservations').textContent = data.stats.activeReservations || 0;
-
-                // ### REVENUE STATS ###
-                // Update total revenue with proper formatting
-                const revenue = parseFloat(data.stats.totalRevenue || 0).toLocaleString('en-PH', {
-                    style: 'currency',
-                    currency: 'PHP'
-                });
-                document.getElementById('totalRevenue').textContent = revenue;
-
-                // Show revenue date (new)
+                // --- Only update stats cards if they exist (admin dashboard) ---
+                const totalRoomsElem = document.getElementById('totalRooms');
+                const availableRoomsElem = document.getElementById('availableRooms');
+                const totalGuestsElem = document.getElementById('totalGuests');
+                const activeReservationsElem = document.getElementById('activeReservations');
+                const totalRevenueElem = document.getElementById('totalRevenue');
+                if (totalRoomsElem) totalRoomsElem.textContent = data.stats.totalRooms || 0;
+                if (availableRoomsElem) availableRoomsElem.textContent = data.stats.availableRooms || 0;
+                if (totalGuestsElem) totalGuestsElem.textContent = data.stats.totalGuests || 0;
+                if (activeReservationsElem) activeReservationsElem.textContent = data.stats.activeReservations || 0;
+                if (totalRevenueElem) {
+                    const revenue = parseFloat(data.stats.totalRevenue || 0).toLocaleString('en-PH', {
+                        style: 'currency',
+                        currency: 'PHP'
+                    });
+                    totalRevenueElem.textContent = revenue;
+                }
+                // Show revenue date (if element exists)
                 const revenueDateElem = document.getElementById('revenueDate');
                 if (revenueDateElem) {
-                    // Use data.stats.revenueDateRange if available, else fallback to today
                     revenueDateElem.textContent = data.stats.revenueDateRange
                         ? data.stats.revenueDateRange
                         : `as of ${new Date().toLocaleDateString()}`;
                 }
-
-                // Show revenue change (fake demo)
-                const revenueChange = data.stats.revenueChange || 0;
+                // Show revenue change (if element exists)
                 const revenueChangeElem = document.getElementById('revenueChange');
                 if (revenueChangeElem) {
+                    const revenueChange = data.stats.revenueChange || 0;
                     revenueChangeElem.textContent = (revenueChange >= 0 ? '+' : '') + revenueChange + '%';
                     revenueChangeElem.className = 'badge ' + (revenueChange >= 0 ? 'bg-success' : 'bg-danger');
                 }
-
-                // --- Render revenue chart with real data ---
-                renderRevenueChart(
-                    data.stats.revenuePerDay || [],
-                    data.stats.revenuePerMonth || []
-                );
-
-                // ### RECENT RESERVATIONS ###
-                // Load recent reservations into table
+                // --- Render revenue chart only if element exists ---
+                if (document.getElementById('revenueChart')) {
+                    renderRevenueChart(
+                        data.stats.revenuePerDay || [],
+                        data.stats.revenuePerMonth || []
+                    );
+                }
+                // --- Always load recent reservations ---
                 loadRecentReservations(data.reservations || []);
-
-                // ### ROOM STATUS CHART ###
-                renderRoomStatusChart(data.stats.roomStatus || []);
-
+                // --- Render room status chart only if element exists ---
+                if (document.getElementById('roomStatusChart')) {
+                    renderRoomStatusChart(data.stats.roomStatus || []);
+                }
                 console.log('Dashboard stats loaded successfully');
             } else {
                 console.error('Error loading dashboard stats:', data);
@@ -76,12 +69,6 @@
     // ### RECENT RESERVATIONS TABLE ###
     function loadRecentReservations(reservations) {
         const tbody = document.getElementById('recentReservationsBody');
-        if (!tbody) return;
-
-        if (!reservations || reservations.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No recent reservations found</td></tr>';
-            return;
-        }
 
         tbody.innerHTML = '';
         reservations.forEach(res => {

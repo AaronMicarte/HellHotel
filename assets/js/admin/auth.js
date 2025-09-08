@@ -171,6 +171,12 @@ class AdminAuth {
                 }
 
                 // Show success and redirect AFTER SweetAlert timer
+                let dashboardUrl = 'dashboard.html';
+                if (result.user.role_type === 'admin') {
+                    dashboardUrl = 'dashboard.html';
+                } else if (result.user.role_type === 'front desk') {
+                    dashboardUrl = '../frontdesk/frontdesk-dashboard.html';
+                }
                 Swal.fire({
                     title: 'Login Successful!',
                     text: `Welcome back, ${result.user.username}`,
@@ -181,7 +187,7 @@ class AdminAuth {
                         popup: 'animate__animated animate__fadeInDown'
                     },
                     willClose: () => {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = dashboardUrl;
                     }
                 });
 
@@ -311,7 +317,7 @@ class AdminAuth {
                     popup: 'animate__animated animate__fadeOutUp'
                 },
                 willClose: () => {
-                    window.location.href = 'admin-login.html';
+                    window.location.href = '../admin/admin-login.html';
                 }
             });
 

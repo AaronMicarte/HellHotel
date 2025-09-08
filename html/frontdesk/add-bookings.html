@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Booking - HellHotel</title>
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/reservation-calendar.css">
+    <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+    <script src="../../assets/js/sidebar-loader.js" defer></script>
+</head>
+
+<body class="admin-page">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <script src="../../assets/js/sidebar-loader.js"></script>
+        <!-- Main Content -->
+        <div class="main-content">
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4>POS Room Booking</h4>
+                </div>
+            </nav>
+            <div class="dashboard-content">
+                <div class="row g-4">
+                    <!-- POS Left: Room Selection & Guest Info -->
+                    <div class="col-lg-8">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-bed me-2"></i>Select Room Type & Room</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="checkInDate" class="form-label">Check-in Date</label>
+                                        <input type="date" id="checkInDate" class="form-control">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="checkOutDate" class="form-label">Check-out Date</label>
+                                        <input type="date" id="checkOutDate" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Room Type</label>
+                                    <div id="roomTypeList" class="d-flex flex-wrap gap-2"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Available Rooms</label>
+                                    <div id="roomNumberList" class="d-flex flex-wrap gap-2"></div>
+                                </div>
+                                <hr>
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-user me-2"></i>Guest Information</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <input type="text" id="guestSearchInput" class="form-control mb-2"
+                                                placeholder="Search Guest">
+                                            <div id="guestSearchDropdown" class="dropdown-menu w-100"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="text" id="firstName" class="form-control mb-2"
+                                                placeholder="First Name">
+                                            <input type="text" id="lastName" class="form-control mb-2"
+                                                placeholder="Last Name">
+                                            <input type="email" id="email" class="form-control mb-2"
+                                                placeholder="Email">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-users me-2"></i>Companions</h6>
+                                    <div id="companionsContainer"></div>
+                                    <button type="button" id="addCompanionBtn"
+                                        class="btn btn-outline-secondary btn-sm mt-2"><i class="fas fa-plus"></i> Add
+                                        Companion</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- POS Right: Booking Summary -->
+                    <div class="col-lg-4">
+                        <div class="card sticky-top">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Booking Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="bookingSummary">
+                                    <!-- Dynamic summary content -->
+                                </div>
+                                <hr>
+                                <div class="mb-3">
+                                    <label for="paymentMethodSelect" class="form-label">Payment Method</label>
+                                    <select id="paymentMethodSelect" class="form-select"></select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="referenceNumber" class="form-label">Reference Number</label>
+                                    <input type="text" id="referenceNumber" class="form-control"
+                                        placeholder="Enter Reference Number">
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="partialPaymentCheck">
+                                    <label class="form-check-label" for="partialPaymentCheck">Pay 50% Partial</label>
+                                </div>
+                                <button type="button" id="saveBookingBtn" class="btn btn-success w-100"><i
+                                        class="fas fa-check"></i> Finalize Booking</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../assets/js/admin/auth.js"></script>
+    <script src="../../assets/js/frontdesk/add-bookings.js"></script>
+</body>
+
+</html>

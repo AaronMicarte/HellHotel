@@ -2,17 +2,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tbody = document.getElementById("historyTableBody");
     const searchInput = document.getElementById("historySearchInput");
 
+    // Log current user role using shared auth module
+    if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
+        const user = window.adminAuth.getUser();
+        if (user && user.role_type) {
+            console.log('[AUTH] Current user role:', user.role_type);
+        } else {
+            console.log('[AUTH] No user role found in session');
+        }
+    } else {
+        console.log('[AUTH] adminAuth not initialized');
+    }
+
     let allHistory = [];
 
     async function fetchAllStatusHistory() {
         try {
-            const resp = await axios.get("/Hotel-Reservation-Billing-System/api/admin/reservations/reservation_status.php", {
-                params: { operation: "getAllStatusHistory" }
+            const resp = await axios.get("/Hotel-Reservation-Billing-System/api/admin/reservations/reservation_history.php", {
+                params: { operation: "getAllHistory" }
             });
-            allHistory = Array.isArray(resp.data) ? resp.data : [];
+            // API returns array directly
+            allHistory = Array.isArray(resp.data) ? resp.data : resp.data?.data || [];
             renderTable(allHistory);
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Failed to load status history.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Failed to load reservation history.</td></tr>`;
         }
     }
 
