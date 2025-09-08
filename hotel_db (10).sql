@@ -127,7 +127,7 @@ CREATE TABLE `addonorderitem` (
 
 CREATE TABLE `addonorderstatus` (
   `order_status_id` int(11) NOT NULL,
-  `order_status_name` enum('pending','preparing','ready','delivered','completed','cancelled') NOT NULL,
+  `order_status_name` enum('pending','confirmed','ready','delivered','completed','cancelled') NOT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `is_deleted` tinyint(1) DEFAULT 0
@@ -139,7 +139,7 @@ CREATE TABLE `addonorderstatus` (
 
 INSERT INTO `addonorderstatus` (`order_status_id`, `order_status_name`, `created_at`, `updated_at`, `is_deleted`) VALUES
 (1, 'pending', '2025-08-29 00:06:36', '2025-08-29 00:06:36', 0),
-(2, 'preparing', '2025-08-29 00:06:36', '2025-08-29 00:08:51', 0),
+(2, 'confirmed', '2025-08-29 00:06:36', '2025-08-29 00:08:51', 0),
 (3, 'ready', '2025-08-29 00:06:36', '2025-08-29 00:09:00', 0),
 (4, 'delivered', '2025-08-29 00:06:36', '2025-08-29 00:06:36', 0),
 (5, 'completed', '2025-08-29 00:06:36', '2025-08-29 00:09:06', 0),

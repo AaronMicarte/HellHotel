@@ -4,115 +4,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS Booking - HellHotel</title>
+    <title>Add Reservation - HellHotel</title>
+
     <!-- External CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
+
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../../assets/css/admin.css">
-    <link rel="stylesheet" href="../../assets/css/reservation-calendar.css">
     <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/booking-form.css">
+    <link rel="stylesheet" href="../../assets/css/frontdesk/add-reservation.css">
+
+    <!-- Sidebar Loader -->
     <script src="../../assets/js/sidebar-loader.js" defer></script>
+
 </head>
 
 <body class="admin-page">
     <div class="admin-wrapper">
         <!-- Sidebar -->
         <div id="sidebar-container"></div>
-        <script src="../../assets/js/sidebar-loader.js"></script>
+
         <!-- Main Content -->
         <div class="main-content">
+            <!-- Top Navigation -->
             <nav class="top-nav">
                 <div class="nav-left">
                     <button class="sidebar-toggle">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <h4>POS Room Booking</h4>
+                    <h4><i class="fas fa-add me-2"></i>Add Reservation</h4>
+                </div>
+                <div class="nav-right">
+                    <button id="newBookingBtn" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-plus"></i> New Booking
+                    </button>
+                    <button id="refreshBtn" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
                 </div>
             </nav>
+
+            <!-- Toast Container -->
+            <div class="toast-container" id="toastContainer"></div>
+
+            <!-- Stepper
             <div class="dashboard-content">
-                <div class="row g-4">
-                    <!-- POS Left: Room Selection & Guest Info -->
-                    <div class="col-lg-8">
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0"><i class="fas fa-bed me-2"></i>Select Room Type & Room</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="checkInDate" class="form-label">Check-in Date</label>
-                                        <input type="date" id="checkInDate" class="form-control">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="checkOutDate" class="form-label">Check-out Date</label>
-                                        <input type="date" id="checkOutDate" class="form-control">
-                                    </div>
+                <div class="stepper">
+                    <div class="step active" id="step-1">
+                        <div class="step-index">1</div>
+                        <div>Guest Info</div>
+                    </div>
+                    <div class="step" id="step-2">
+                        <div class="step-index">2</div>
+                        <div>Room Selection</div>
+                    </div>
+                    <div class="step" id="step-3">
+                        <div class="step-index">3</div>
+                        <div>Payment & Confirm</div>
+                    </div>
+                </div> -->
+
+            <!-- POS Layout Container -->
+            <div class="row pos-container g-0">
+                <!-- Left Side: Main Content -->
+                <div class="col-lg-8 pos-left">
+                    <div class="p-3">
+                        <!-- Step 1: Guest Information -->
+                        <div class="step-content active" id="step-1-content">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Guest Information</h5>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Room Type</label>
-                                    <div id="roomTypeList" class="d-flex flex-wrap gap-2"></div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Available Rooms</label>
-                                    <div id="roomNumberList" class="d-flex flex-wrap gap-2"></div>
-                                </div>
-                                <hr>
-                                <div class="mb-3">
-                                    <h6><i class="fas fa-user me-2"></i>Guest Information</h6>
-                                    <div class="row g-2">
-                                        <div class="col-md-6">
+                                <div class="card-body">
+                                    <!-- Guest Search -->
+                                    <div class="guest-section">
+                                        <h6 class="mb-3">Search Existing Guest</h6>
+                                        <div class="position-relative">
                                             <input type="text" id="guestSearchInput" class="form-control mb-2"
-                                                placeholder="Search Guest">
-                                            <div id="guestSearchDropdown" class="dropdown-menu w-100"></div>
+                                                placeholder="Search by name, email, or phone number...">
+                                            <div id="guestSearchDropdown" class="guest-search-dropdown"
+                                                style="display: none;"></div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <input type="text" id="firstName" class="form-control mb-2"
-                                                placeholder="First Name">
-                                            <input type="text" id="lastName" class="form-control mb-2"
-                                                placeholder="Last Name">
-                                            <input type="email" id="email" class="form-control mb-2"
-                                                placeholder="Email">
+                                        <div class="text-center">
+                                            <small class="text-muted">OR</small>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="mb-3">
-                                    <h6><i class="fas fa-users me-2"></i>Companions</h6>
-                                    <div id="companionsContainer"></div>
-                                    <button type="button" id="addCompanionBtn"
-                                        class="btn btn-outline-secondary btn-sm mt-2"><i class="fas fa-plus"></i> Add
-                                        Companion</button>
+
+                                    <!-- Guest Form -->
+                                    <form id="guestInfoForm">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="firstName" class="form-label">First Name <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="firstName" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="lastName" class="form-label">Last Name <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="lastName" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="email" class="form-label">Email <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="email" class="form-control" id="email" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="phoneNumber" class="form-label">Phone Number <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="tel" class="form-control" id="phoneNumber" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="dateOfBirth" class="form-label">Date of Birth <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="date" class="form-control" id="dateOfBirth" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="idType" class="form-label">ID Type <span
+                                                        class="text-danger">*</span></label>
+                                                <select class="form-select" id="idType" required>
+                                                    <option value="">Select ID Type</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="idNumber" class="form-label">ID Number <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="idNumber" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">ID Picture</label>
+                                                <img id="idPicPreview" src="" alt="ID Picture"
+                                                    style="display:none;max-width:100%;height:auto;border-radius:6px;border:1px solid #ccc;" />
+                                            </div>
+                                        </div>
+                                    </form>
+
+                                    <div class="text-end mt-4">
+                                        <button type="button" id="toStep2Btn" class="btn btn-hell">
+                                            Next: Room Selection <i class="fas fa-arrow-right ms-2"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Step 2: Room Selection -->
+                        <div class="step-content" id="step-2-content">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body p-4">
+                                    <h3 class="mb-4 text-center text-danger"><i class="fas fa-bed me-2"></i>Room
+                                        Selection</h3>
+                                    <!-- Date Selection -->
+                                    <div class="mb-4">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label text-danger">Check-in Date <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="date" class="form-control" id="checkInDate" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-danger">Check-out Date <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="date" class="form-control" id="checkOutDate" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Multiple Bookings Container -->
+                                    <div id="multipleBookingsContainer" class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="mb-0 text-danger"><i class="fas fa-list me-2"></i>Room Bookings
+                                            </h5>
+                                            <button type="button" id="addBookingBtn"
+                                                class="btn btn-outline-danger btn-sm">
+                                                <i class="fas fa-plus"></i> Add Another Room
+                                            </button>
+                                        </div>
+                                        <div id="bookingItemsContainer">
+                                            <!-- Dynamic booking items will be added here -->
+                                        </div>
+                                    </div>
+                                    <!-- Room Types Grid -->
+                                    <div class="mb-4">
+                                        <h5 class="mb-3 text-danger"><i class="fas fa-door-open me-2"></i>Available Room
+                                            Types</h5>
+                                        <div id="roomTypesGrid" class="row g-4">
+                                            <!-- Dynamic room type cards -->
+                                        </div>
+                                    </div>
+                                    <!-- Available Rooms -->
+                                    <div class="mb-4" id="availableRoomsSection" style="display: none;">
+                                        <h5 class="mb-3 text-danger"><i class="fas fa-key me-2"></i>Available Room
+                                            Numbers</h5>
+                                        <div id="roomNumbersGrid" class="d-flex flex-wrap gap-2">
+                                            <!-- Dynamic room number buttons -->
+                                        </div>
+                                    </div>
+                                    <!-- Companions Section -->
+                                    <div id="companionsSection" class="mb-4" style="display: none;">
+                                        <h5 class="mb-3 text-danger"><i class="fas fa-users me-2"></i>Room Companions
+                                        </h5>
+                                        <div id="companionsContainer">
+                                            <!-- Dynamic companion forms -->
+                                        </div>
+                                    </div>
+                                    <div class="step-actions mt-4 d-flex justify-content-between">
+                                        <button type="button" id="backToStep1Btn" class="btn btn-outline-danger px-5">
+                                            <i class="fas fa-arrow-left me-2"></i>Back
+                                        </button>
+                                        <button type="button" id="toStep3Btn" class="btn btn-danger px-5">
+                                            Next: Payment <i class="fas fa-arrow-right ms-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Payment & Confirmation -->
+                        <div class="step-content" id="step-3-content">
+                            <div class="card">
+                                <div class="card-header bg-warning text-white">
+                                    <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment & Confirmation
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Payment Methods -->
+                                    <div class="mb-4">
+                                        <h6 class="mb-3">Select Payment Method</h6>
+                                        <div id="paymentCategoriesGrid" class="payment-methods-grid">
+                                            <!-- Dynamic payment categories -->
+                                        </div>
+                                        <div id="paymentSubMethodsContainer" class="mt-3" style="display: none;">
+                                            <div id="paymentSubMethodsGrid" class="payment-methods-grid">
+                                                <!-- Dynamic payment sub-methods -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Payment Details -->
+                                    <div id="paymentDetailsSection" class="mb-4" style="display: none;">
+                                        <div class="row g-3">
+                                            <div class="col-md-6" id="referenceNumberContainer" style="display: none;">
+                                                <label for="referenceNumber" class="form-label">Reference Number
+                                                    <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="referenceNumber"
+                                                    placeholder="Enter reference number">
+                                            </div>
+                                            <div class="col-md-6" id="proofOfPaymentContainer" style="display: none;">
+                                                <label for="proofOfPayment" class="form-label">Proof of
+                                                    Payment</label>
+                                                <input type="file" class="form-control" id="proofOfPayment"
+                                                    accept="image/*">
+                                            </div>
+                                        </div>
+
+                                        <!-- Payment Instructions -->
+                                        <div id="paymentInstructionsBox" class="mt-3" style="display: none;">
+                                            <!-- Dynamic payment instructions -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Partial Payment Option -->
+                                    <div class="form-check mb-4">
+                                        <input class="form-check-input" type="checkbox" id="partialPaymentCheck">
+                                        <label class="form-check-label" for="partialPaymentCheck">
+                                            Pay 50% Partial Payment (Remaining balance due on check-in)
+                                        </label>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between mt-4">
+                                        <button type="button" id="backToStep2Btn" class="btn btn-outline-hell">
+                                            <i class="fas fa-arrow-left me-2"></i> Back
+                                        </button>
+                                        <button type="button" id="finalizeBookingBtn" class="btn btn-hell btn-lg">
+                                            <i class="fas fa-check me-2"></i> Finalize Booking
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Booking Success Message -->
+                        <div id="bookingSuccessMessage" class="alert alert-success" style="display: none;">
+                            <div class="text-center">
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <h4>Booking Confirmed!</h4>
+                                <p class="mb-0">Your booking has been successfully created and confirmed.</p>
+                            </div>
+                        </div>
                     </div>
-                    <!-- POS Right: Booking Summary -->
-                    <div class="col-lg-4">
-                        <div class="card sticky-top">
-                            <div class="card-header bg-success text-white">
+                </div>
+
+                <!-- Right Side: Booking Summary -->
+                <div class="col-lg-4 pos-right">
+                    <div class="p-3">
+                        <div class="booking-summary-card">
+                            <div class="summary-header">
                                 <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Booking Summary</h5>
                             </div>
-                            <div class="card-body">
-                                <div id="bookingSummary">
-                                    <!-- Dynamic summary content -->
+                            <div class="p-3">
+                                <div id="bookingSummaryContent">
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                                        <p>No rooms selected yet</p>
+                                    </div>
                                 </div>
-                                <hr>
-                                <div class="mb-3">
-                                    <label for="paymentMethodSelect" class="form-label">Payment Method</label>
-                                    <select id="paymentMethodSelect" class="form-select"></select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="referenceNumber" class="form-label">Reference Number</label>
-                                    <input type="text" id="referenceNumber" class="form-control"
-                                        placeholder="Enter Reference Number">
-                                </div>
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" id="partialPaymentCheck">
-                                    <label class="form-check-label" for="partialPaymentCheck">Pay 50% Partial</label>
-                                </div>
-                                <button type="button" id="saveBookingBtn" class="btn btn-success w-100"><i
-                                        class="fas fa-check"></i> Finalize Booking</button>
                             </div>
                         </div>
                     </div>
@@ -120,6 +320,8 @@
             </div>
         </div>
     </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>

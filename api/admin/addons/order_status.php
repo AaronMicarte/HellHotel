@@ -169,16 +169,6 @@ class AddonOrderStatus
         $stmtPrev->execute();
         $prevRow = $stmtPrev->fetch(PDO::FETCH_ASSOC);
         $prev_status_id = $prevRow ? $prevRow['order_status_id'] : null;
-        // Update AddonOrder
-        $stmt2 = $db->prepare("UPDATE AddonOrder SET order_status_id = :order_status_id, updated_at = NOW() WHERE addon_order_id = :addon_order_id");
-        $stmt2->bindParam(":order_status_id", $order_status_id);
-        $stmt2->bindParam(":addon_order_id", $addon_order_id);
-        $stmt2->execute();
-        // Log status change
-        $this->logStatusChange($addon_order_id, $order_status_id, $changed_by_user_id, $remarks);
-        // Defensive: ensure $changed_by_user_id is not null
-        // If null, do not log or log as system (0)
-        // Already checked above, so should be safe
         // Get new status name
         $new_status_name = strtolower($next_status);
         // Get reservation_id for this order
@@ -187,6 +177,24 @@ class AddonOrderStatus
         $stmtOrder->execute();
         $orderRow = $stmtOrder->fetch(PDO::FETCH_ASSOC);
         $reservation_id = $orderRow ? $orderRow['reservation_id'] : null;
+        // If trying to deliver, check reservation status
+        if ($new_status_name === 'delivered' && $reservation_id) {
+            $stmtRes = $db->prepare("SELECT rs.reservation_status FROM Reservation res LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id WHERE res.reservation_id = ? LIMIT 1");
+            $stmtRes->execute([$reservation_id]);
+            $resStatusRow = $stmtRes->fetch(PDO::FETCH_ASSOC);
+            $reservation_status = $resStatusRow ? strtolower($resStatusRow['reservation_status']) : '';
+            if ($reservation_status !== 'checked-in') {
+                echo json_encode(['success' => false, 'message' => 'Cannot deliver addon: The guest reservation status is not checked-in.']);
+                return;
+            }
+        }
+        // Update AddonOrder
+        $stmt2 = $db->prepare("UPDATE AddonOrder SET order_status_id = :order_status_id, updated_at = NOW() WHERE addon_order_id = :addon_order_id");
+        $stmt2->bindParam(":order_status_id", $order_status_id);
+        $stmt2->bindParam(":addon_order_id", $addon_order_id);
+        $stmt2->execute();
+        // Log status change
+        $this->logStatusChange($addon_order_id, $order_status_id, $changed_by_user_id, $remarks);
         // Get billing_id for this reservation
         $billing_id = null;
         if ($reservation_id) {

@@ -42,7 +42,6 @@ function loadSidebar() {
             // List of selectors for items to hide for front desk
             const hideSelectors = [
                 'a[href="add-users.html"]',
-                'a[href="addon-order-history.html"]',
                 'a[href="addons.html"]',
             ];
             hideSelectors.forEach(sel => {

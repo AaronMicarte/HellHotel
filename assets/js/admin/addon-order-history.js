@@ -1,4 +1,12 @@
 document.addEventListener("DOMContentLoaded", async () => {
+    // Get current user role (try shared auth module, fallback to window)
+    let currentUserRole = null;
+    if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
+        const user = window.adminAuth.getUser();
+        if (user && user.role_type) currentUserRole = user.role_type.toLowerCase();
+    } else if (window.CURRENT_USER_ROLE) {
+        currentUserRole = window.CURRENT_USER_ROLE.toLowerCase();
+    }
     const tbody = document.getElementById("historyTableBody");
     const searchInput = document.getElementById("historySearchInput");
 
@@ -17,17 +25,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function renderTable(data) {
-        if (!data.length) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center">No status history found.</td></tr>`;
+        let filteredData = data;
+        if (currentUserRole && currentUserRole.includes('frontdesk')) {
+            filteredData = data.filter(row => (row.changed_by_role || '').toLowerCase().includes('frontdesk'));
+        }
+        if (!filteredData.length) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center">No audit history found.</td></tr>`;
             return;
         }
         tbody.innerHTML = "";
-        data.forEach(row => {
+        filteredData.forEach(row => {
             // Hotel-appropriate status icons
             let status = (row.order_status_name || '').toLowerCase();
             let icon = '<i class="fas fa-question-circle text-secondary"></i>';
             let label = status.charAt(0).toUpperCase() + status.slice(1);
             if (status === 'pending') icon = '<i class="fas fa-hourglass-half" style="color:#ffc107"></i>'; // Yellow
+            else if (status === 'confirmed') icon = '<i class="fas fa-check-circle" style="color:#28a745"></i>'; // Green
             else if (status === 'preparing') icon = '<i class="fas fa-utensils" style="color:#6f42c1"></i>'; // Purple
             else if (status === 'ready') icon = '<i class="fas fa-bell" style="color:#17a2b8"></i>'; // Teal
             else if (status === 'delivered') icon = '<i class="fas fa-concierge-bell" style="color:#28a745"></i>'; // Green

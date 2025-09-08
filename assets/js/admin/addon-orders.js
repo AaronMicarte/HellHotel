@@ -1,3 +1,19 @@
+// Toast helper for notifications
+function showToast(type, title, text = '') {
+    if (window.Swal) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: type,
+            title: title,
+            text: text,
+            showConfirmButton: false,
+            timer: type === 'error' ? 2500 : 1800
+        });
+    } else {
+        alert(`${title}${text ? ': ' + text : ''}`);
+    }
+}
 import { deleteOrder, editOrder } from '../modules/admin/addon-order-module.js';
 
 
@@ -175,10 +191,10 @@ async function loadAddonOrders() {
                         if (window.Swal) Swal.fire('Success', 'Order status updated.', 'success');
                         loadAddonOrders();
                     } else {
-                        if (window.Swal) Swal.fire('Error', 'Failed to update status.', 'error');
+                        showToast('error', 'Cannot update status: Guest reservation is not checked-in.');
                     }
                 } catch (err) {
-                    if (window.Swal) Swal.fire('Error', 'Failed to update status.', 'error');
+                    showToast('error', 'Cannot update status: Guest reservation is not checked-in.');
                 }
             } else if (action === 'cancel') {
                 let confirmText = 'Are you sure you want to cancel this order?';
@@ -279,8 +295,8 @@ function renderOrderRow(order) {
         const id = order.addon_order_id;
         let icons = [];
         if (status === 'pending') {
-            icons.push(`<i class="fas fa-utensils action-icon" style="cursor:pointer; color:#6f42c1; margin-right:8px;" title="Mark as Preparing" data-action="status-preparing" data-id="${id}"></i>`);
-        } else if (status === 'preparing') {
+            icons.push(`<i class=\"fas fa-check-circle action-icon\" style=\"cursor:pointer; color:blue; margin-right:8px;\" title=\"Mark as Confirmed\" data-action=\"status-confirmed\" data-id=\"${id}\"></i>`);
+        } else if (status === 'confirmed') {
             icons.push(`<i class="fas fa-bell action-icon" style="cursor:pointer; color:#17a2b8; margin-right:8px;" title="Mark as Ready" data-action="status-ready" data-id="${id}"></i>`);
         } else if (status === 'ready') {
             icons.push(`<i class="fas fa-concierge-bell action-icon" style="cursor:pointer; color:#28a745; margin-right:8px;" title="Mark as Delivered" data-action="status-delivered" data-id="${id}"></i>`);
@@ -317,7 +333,7 @@ function getOrderStatusIcon(status) {
     let icon = '<i class="fas fa-question-circle text-secondary"></i>';
     let label = status.charAt(0).toUpperCase() + status.slice(1);
     if (status === 'pending') icon = '<i class="fas fa-hourglass-half" style="color:#ffc107"></i>'; // Yellow
-    else if (status === 'preparing') icon = '<i class="fas fa-utensils" style="color:#6f42c1"></i>'; // Purple
+    else if (status === 'confirmed') icon = '<i class="fas fa-check-circle" style="color:#28a745"></i>'; // Green
     else if (status === 'ready') icon = '<i class="fas fa-bell" style="color:#17a2b8"></i>'; // Teal
     else if (status === 'delivered') icon = '<i class="fas fa-concierge-bell" style="color:#28a745"></i>'; // Green
     else if (status === 'cancelled') icon = '<i class="fas fa-times-circle" style="color:#dc3545"></i>'; // Red
@@ -331,8 +347,8 @@ function renderNextStatusAction(order) {
     let actions = [];
     // Status flow icons
     if (status === 'pending') {
-        actions.push({ next: 'preparing', icon: 'fa-utensils', color: '', style: 'color:#6f42c1', label: 'Mark as Preparing', type: 'status' }); // Purple
-    } else if (status === 'preparing') {
+        actions.push({ next: 'confirmed', icon: 'fa-check-circle', color: '', style: 'color:#28a745', label: 'Mark as Confirmed', type: 'status' }); // Green
+    } else if (status === 'confirmed') {
         actions.push({ next: 'ready', icon: 'fa-bell', color: '', style: 'color:#17a2b8', label: 'Mark as Ready', type: 'status' }); // Teal
     } else if (status === 'ready') {
         actions.push({ next: 'delivered', icon: 'fa-concierge-bell', color: '', style: 'color:#28a745', label: 'Mark as Delivered', type: 'status' }); // Green

@@ -59,8 +59,19 @@ class AddonOrder
                 echo json_encode(['success' => false, 'message' => 'User ID is required to create an order. Please log in again.']);
                 return;
             }
+
             $reservation_id = $json['reservation_id'];
             $order_status_id = isset($json['order_status_id']) ? $json['order_status_id'] : 1; // default to 'pending'
+            // Check reservation status before allowing addon order
+            $stmtRes = $db->prepare("SELECT rs.reservation_status FROM Reservation res LEFT JOIN ReservationStatus rs ON res.reservation_status_id = rs.reservation_status_id WHERE res.reservation_id = ? LIMIT 1");
+            $stmtRes->execute([$reservation_id]);
+            $resStatusRow = $stmtRes->fetch(PDO::FETCH_ASSOC);
+            $reservation_status = $resStatusRow ? strtolower($resStatusRow['reservation_status']) : '';
+            if ($reservation_status !== 'confirmed') {
+                echo json_encode(['success' => false, 'message' => 'Addons can only be ordered for confirmed reservations.']);
+                return;
+            }
+
             // Set order_date to current date and time in Asia/Manila
             date_default_timezone_set('Asia/Manila');
             $order_date = date('Y-m-d H:i:s');
