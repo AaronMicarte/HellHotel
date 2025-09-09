@@ -61,3 +61,4 @@
 2025-09-07T18:02:55+02:00 insertOnHoldPayment payload: {"reservation_id":"152","billing_id":"117","sub_method_id":"1","amount_paid":99.5,"payment_date":"2025-09-07","reference_number":"123321","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
 2025-09-07T18:02:55+02:00 File uploaded: assets/images/payment/1757260975_bg.jpg
 2025-09-07T18:02:55+02:00 Payment inserted successfully with ID: 116
+2025-09-09T17:58:39+02:00 insertPayment payload: {"user_id":7,"billing_id":"125","reservation_id":"160","sub_method_id":6,"amount_paid":"149.5","payment_date":"2025-09-09 23:58:38","notes":"idk","reference_number":null,"money_given":"200","change_given":"50.50"}

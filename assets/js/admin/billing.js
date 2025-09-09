@@ -18,6 +18,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("searchBtn")?.addEventListener("click", searchBillings);
     document.getElementById("addPaymentBtn")?.addEventListener("click", () => showPaymentModal());
     document.getElementById("savePaymentBtn")?.addEventListener("click", async () => {
+        const moneyGiven = document.getElementById("moneyGiven")?.value || "";
+        const paymentAmount = document.getElementById("paymentAmount")?.value || "";
+        if (moneyGiven !== "" && paymentAmount !== "" && parseFloat(moneyGiven) < parseFloat(paymentAmount)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Insufficient Money Given',
+                text: 'Money given must be equal to or greater than payment amount.'
+            });
+            return;
+        }
         if (await recordPayment()) loadBillings();
     });
     document.getElementById("searchBilling")?.addEventListener("keyup", (e) => {

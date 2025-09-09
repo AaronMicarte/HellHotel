@@ -404,7 +404,7 @@ class Reservation
                     $rowRooms = $stmtRooms->fetch(PDO::FETCH_ASSOC);
                     $total_price = ($rowRooms && isset($rowRooms['total_price'])) ? floatval($rowRooms['total_price']) : 0;
                     $partial_amount = $total_price * 0.5;
-                    // Insert billing with FULL price, PARTIAL status (id=3)
+                    // Insert billing with FULL price, PARTIAL status (id=3), and payment fields
                     $sqlBill = "INSERT INTO Billing (reservation_id, billing_status_id, total_amount, billing_date) VALUES (:reservation_id, :billing_status_id, :total_amount, NOW())";
                     $stmtBill = $db->prepare($sqlBill);
                     $billing_status_id = 3; // PARTIAL
@@ -422,13 +422,17 @@ class Reservation
                         if (isset($json['sub_method_id']) && is_numeric($json['sub_method_id'])) {
                             $sub_method_id = intval($json['sub_method_id']);
                         }
-                        $sqlPay = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, is_deleted) VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, NOW(), :notes, :reference_number, 0)";
+                        $sqlPay = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, money_given, change_given, payment_date, notes, reference_number, is_deleted) VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :money_given, :change_given, NOW(), :notes, :reference_number, 0)";
                         $stmtPay = $db->prepare($sqlPay);
                         $stmtPay->bindParam(":user_id", $userId);
                         $stmtPay->bindParam(":billing_id", $billingId);
                         $stmtPay->bindParam(":reservation_id", $reservationId);
                         $stmtPay->bindParam(":sub_method_id", $sub_method_id);
                         $stmtPay->bindParam(":amount_paid", $partial_amount);
+                        $money_given = isset($json['money_given']) ? $json['money_given'] : 0;
+                        $change_given = isset($json['change_given']) ? $json['change_given'] : 0;
+                        $stmtPay->bindParam(":money_given", $money_given);
+                        $stmtPay->bindParam(":change_given", $change_given);
                         $note = "Partial/Downpayment (auto)";
                         $stmtPay->bindParam(":notes", $note);
                         $reference_number = isset($json['reference_number']) ? $json['reference_number'] : null;

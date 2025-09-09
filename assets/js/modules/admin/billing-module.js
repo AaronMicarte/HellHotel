@@ -176,20 +176,17 @@ export const showBillingDetailsModal = async (billingId) => {
             paymentHistoryBody.innerHTML = "";
             (billing.payments || []).forEach(p => {
                 const referenceDisplay = p.reference_number ?
-                    `<br><small class="text-muted"><i class="fas fa-receipt me-1"></i>Ref: ${p.reference_number}</small>` : '';
-
-                // Show status note for pending payments
+                    `<br><small class='text-muted'><i class='fas fa-receipt me-1'></i>Ref: ${p.reference_number}</small>` : '';
                 const statusNote = p.status_note ?
-                    `<br><small class="text-warning"><i class="fas fa-hourglass-half me-1"></i>${p.status_note}</small>` : '';
-
-                // Show original amount for pending payments
+                    `<br><small class='text-warning'><i class='fas fa-hourglass-half me-1'></i>${p.status_note}</small>` : '';
                 const displayAmount = p.amount_paid_display ? p.amount_paid_display : p.amount_paid;
                 const amountClass = p.status_note ? 'text-muted' : '';
-
                 paymentHistoryBody.innerHTML += `
                     <tr>
                         <td>${formatDate(p.payment_date)}</td>
-                        <td class="${amountClass}">₱${parseFloat(displayAmount).toFixed(2)}</td>
+                        <td>₱${parseFloat(displayAmount).toFixed(2)}</td>
+                        <td>₱${parseFloat(p.money_given || 0).toFixed(2)}</td>
+                        <td>₱${parseFloat(p.change_given || 0).toFixed(2)}</td>
                         <td>${p.method_name || '-'}${referenceDisplay}</td>
                         <td>${p.notes || ''}${statusNote}</td>
                     </tr>
@@ -425,18 +422,21 @@ export const showPaymentModal = async (billingId = null, reservationId = null) =
                 });
                 return;
             }
+        }
 
-            if (!statusCheck.can_pay) {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'warning',
-                    title: `Cannot accept payments for ${statusCheck.reservation_status} reservations. Please confirm the reservation first.`,
-                    showConfirmButton: false,
-                    timer: 3500
-                });
-                return;
-            }
+        // Populate modal fields as usual
+        // Add event listener for moneyGiven and paymentAmount to auto-calculate changeGiven
+        const paymentAmountInput = document.getElementById("paymentAmount");
+        const moneyGivenInput = document.getElementById("moneyGiven");
+        const changeGivenInput = document.getElementById("changeGiven");
+        function updateChangeGiven() {
+            const moneyGiven = parseFloat(moneyGivenInput.value) || 0;
+            const paymentAmount = parseFloat(paymentAmountInput.value) || 0;
+            changeGivenInput.value = (moneyGiven - paymentAmount >= 0) ? (moneyGiven - paymentAmount).toFixed(2) : "0.00";
+        }
+        if (moneyGivenInput && paymentAmountInput && changeGivenInput) {
+            moneyGivenInput.addEventListener("input", updateChangeGiven);
+            paymentAmountInput.addEventListener("input", updateChangeGiven);
         }
 
         // Reset form
@@ -534,10 +534,12 @@ export const recordPayment = async () => {
     const paymentMethod = document.getElementById("paymentMethod").value;
     const paymentNotes = document.getElementById("paymentNotes").value;
     const referenceNumber = document.getElementById("paymentReferenceNumber").value;
+    const moneyGiven = document.getElementById("moneyGiven")?.value || "";
+    const changeGiven = document.getElementById("changeGiven")?.value || "";
 
     // DEBUG: Log all values
     console.debug("[BillingModule] recordPayment values:", {
-        billingId, reservationId, paymentAmount, paymentMethod, paymentNotes, referenceNumber
+        billingId, reservationId, paymentAmount, paymentMethod, paymentNotes, referenceNumber, moneyGiven, changeGiven
     });
 
     if (!reservationId || !paymentAmount || !paymentMethod) {
@@ -685,7 +687,9 @@ export const recordPayment = async () => {
         amount_paid: paymentAmount,
         payment_date,
         notes: paymentNotes,
-        reference_number: referenceNumber.trim() || null
+        reference_number: referenceNumber.trim() || null,
+        money_given: moneyGiven,
+        change_given: changeGiven
     };
 
     // DEBUG: Log payload

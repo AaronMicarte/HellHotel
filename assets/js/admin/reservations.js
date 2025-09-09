@@ -279,14 +279,35 @@ document.addEventListener("DOMContentLoaded", () => {
         html += `<div class="fs-5 fw-bold text-end">Total: <span class="text-success">₱${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
         // Payment method and partial payment
         const paymentMethodSelect = document.getElementById("paymentMethodSelect");
-        // let paymentMethod = paymentMethodSelect ? paymentMethodSelect.options[paymentMethodSelect.selectedIndex]?.text : '';
         let partial = total * 0.5;
-        // html += `<div class="mt-3"><b>Payment Method:</b> <span class="text-info">${paymentMethod || 'N/A'}</span></div>`;
         html += `<div class="mt-1"><b>Partial Payment (50%):</b> <span class="text-warning">₱${partial.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
         // Also update the partialPayment span in the payment section
         const partialPaymentSpan = document.getElementById("partialPayment");
         if (partialPaymentSpan) partialPaymentSpan.textContent = `₱${partial.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        // Update totalPrice field
+        const totalPriceInput = document.getElementById("totalPrice");
+        if (totalPriceInput) totalPriceInput.value = total.toFixed(2);
+        // Recalculate change if moneyGiven is present
+        const moneyGivenInput = document.getElementById("moneyGiven");
+        const changeInput = document.getElementById("change");
+        if (moneyGivenInput && changeInput) {
+            let moneyGiven = parseFloat(moneyGivenInput.value) || 0;
+            let change = moneyGiven - total;
+            changeInput.value = change >= 0 ? change.toFixed(2) : "0.00";
+        }
         multiRoomSummary.innerHTML = html;
+    }
+    // Payment: auto-calculate change
+    const moneyGivenInput = document.getElementById("moneyGiven");
+    if (moneyGivenInput) {
+        moneyGivenInput.addEventListener("input", function () {
+            const totalPriceInput = document.getElementById("totalPrice");
+            const changeInput = document.getElementById("change");
+            let total = parseFloat(totalPriceInput?.value) || 0;
+            let moneyGiven = parseFloat(this.value) || 0;
+            let change = moneyGiven - total;
+            if (changeInput) changeInput.value = change >= 0 ? change.toFixed(2) : "0.00";
+        });
     }
 
     // Initialize with one room section on modal open
@@ -1756,6 +1777,16 @@ async function saveReservation() {
     // Get selected payment method for partial payment
     const subMethodId = getVal("paymentMethodSelect");
     const referenceNumber = getVal("referenceNumber");
+    const totalPrice = parseFloat(getVal("totalPrice")) || 0;
+    const moneyGiven = parseFloat(getVal("moneyGiven")) || 0;
+    const change = parseFloat(getVal("change")) || 0;
+    // Validate payment amount: must be at least partial (50% of total)
+    const partialPayment = totalPrice * 0.5;
+    if (moneyGiven < partialPayment) {
+        showError(`Payment must be at least the partial amount (₱${partialPayment.toLocaleString(undefined, { minimumFractionDigits: 2 })}).`);
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+    }
     let guestId = document.getElementById("guestSelectId")?.value || getVal("guestSelect");
     const reservationId = getVal("reservationId");
     // Guest fields
@@ -1903,7 +1934,10 @@ async function saveReservation() {
         reservation_status_id: statusId,
         sub_method_id: subMethodId,
         reference_number: referenceNumber.trim() || null,
-        rooms: roomsPayload
+        rooms: roomsPayload,
+        total_price: totalPrice,
+        money_given: moneyGiven,
+        change_given: change // Use change_given to match DB schema
     };
     let operation = "insertReservation";
     if (reservationId) {

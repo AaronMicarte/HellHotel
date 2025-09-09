@@ -111,8 +111,8 @@ class PaymentAPI
             }
         }
 
-        $sql = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, proof_of_payment_url)
-                VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :payment_date, :notes, :reference_number, :proof_of_payment_url)";
+        $sql = "INSERT INTO Payment (user_id, billing_id, reservation_id, sub_method_id, amount_paid, payment_date, notes, reference_number, proof_of_payment_url, money_given, change_given)
+        VALUES (:user_id, :billing_id, :reservation_id, :sub_method_id, :amount_paid, :payment_date, :notes, :reference_number, :proof_of_payment_url, :money_given, :change_given)";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":user_id", $user_id);
         $stmt->bindParam(":billing_id", $json['billing_id']);
@@ -124,12 +124,26 @@ class PaymentAPI
         $reference_number = isset($json['reference_number']) ? $json['reference_number'] : null;
         $stmt->bindParam(":reference_number", $reference_number);
         $stmt->bindParam(":proof_of_payment_url", $proof_of_payment_url);
+        $money_given = isset($json['money_given']) ? $json['money_given'] : null;
+        $change_given = isset($json['change_given']) ? $json['change_given'] : null;
+        $stmt->bindParam(":money_given", $money_given);
+        $stmt->bindParam(":change_given", $change_given);
 
         try {
             $stmt->execute();
             $returnValue = 0;
             if ($stmt->rowCount() > 0) {
                 $returnValue = 1;
+                // Insert into PaymentHistory
+                $payment_id = $db->lastInsertId();
+                $action_type = 'insert';
+                $action_user_id = $user_id;
+                $sqlHistory = "INSERT INTO PaymentHistory (payment_id, action_type, action_user_id, action_timestamp) VALUES (:payment_id, :action_type, :action_user_id, NOW())";
+                $stmtHistory = $db->prepare($sqlHistory);
+                $stmtHistory->bindParam(":payment_id", $payment_id);
+                $stmtHistory->bindParam(":action_type", $action_type);
+                $stmtHistory->bindParam(":action_user_id", $action_user_id);
+                $stmtHistory->execute();
             }
             echo json_encode($returnValue);
         } catch (PDOException $e) {
@@ -282,6 +296,18 @@ class PaymentAPI
         $stmt->execute();
 
         $returnValue = $stmt->rowCount() > 0 ? 1 : 0;
+        // Insert into PaymentHistory if update succeeded
+        if ($stmt->rowCount() > 0) {
+            $action_type = 'update';
+            $action_user_id = $json['user_id'];
+            $payment_id = $json['payment_id'];
+            $sqlHistory = "INSERT INTO PaymentHistory (payment_id, action_type, action_user_id, action_timestamp) VALUES (:payment_id, :action_type, :action_user_id, NOW())";
+            $stmtHistory = $db->prepare($sqlHistory);
+            $stmtHistory->bindParam(":payment_id", $payment_id);
+            $stmtHistory->bindParam(":action_type", $action_type);
+            $stmtHistory->bindParam(":action_user_id", $action_user_id);
+            $stmtHistory->execute();
+        }
         echo json_encode($returnValue);
     }
 
@@ -398,6 +424,18 @@ class PaymentAPI
         $stmt->execute();
 
         $returnValue = $stmt->rowCount() > 0 ? 1 : 0;
+        // Insert into PaymentHistory if delete succeeded
+        if ($stmt->rowCount() > 0) {
+            $action_type = 'delete';
+            $action_user_id = isset($json['user_id']) ? $json['user_id'] : null;
+            $payment_id = $json['payment_id'];
+            $sqlHistory = "INSERT INTO PaymentHistory (payment_id, action_type, action_user_id, action_timestamp) VALUES (:payment_id, :action_type, :action_user_id, NOW())";
+            $stmtHistory = $db->prepare($sqlHistory);
+            $stmtHistory->bindParam(":payment_id", $payment_id);
+            $stmtHistory->bindParam(":action_type", $action_type);
+            $stmtHistory->bindParam(":action_user_id", $action_user_id);
+            $stmtHistory->execute();
+        }
         echo json_encode($returnValue);
     }
 }

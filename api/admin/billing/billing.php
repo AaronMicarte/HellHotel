@@ -483,7 +483,7 @@ class Billing
         $total_amount = $room_price;
 
         $sql = "INSERT INTO Billing (reservation_id, billing_status_id, total_amount, billing_date)
-                VALUES (:reservation_id, :billing_status_id, :total_amount, :billing_date)";
+    VALUES (:reservation_id, :billing_status_id, :total_amount, :billing_date)";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":reservation_id", $reservation_id);
         $stmt->bindParam(":billing_status_id", $json['billing_status_id']);
@@ -506,11 +506,11 @@ class Billing
         $json = is_array($json) ? $json : json_decode($json, true);
 
         $sql = "UPDATE Billing SET 
-                    reservation_id = :reservation_id,
-                    billing_status_id = :billing_status_id,
-                    total_amount = :total_amount,
-                    billing_date = :billing_date
-                WHERE billing_id = :billing_id";
+            reservation_id = :reservation_id,
+            billing_status_id = :billing_status_id,
+            total_amount = :total_amount,
+            billing_date = :billing_date
+        WHERE billing_id = :billing_id";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":reservation_id", $json['reservation_id']);
         $stmt->bindParam(":billing_status_id", $json['billing_status_id']);
