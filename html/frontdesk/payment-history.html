@@ -66,7 +66,7 @@
                                 autocomplete="off">
                                 <div class="col-md-4 d-flex align-items-center">
                                     <input type="text" id="paymentHistorySearchInput" class="form-control me-2"
-                                        placeholder="Search by Payment ID or User...">
+                                        placeholder="Search by Payment ID, User, or Guest Name...">
                                 </div>
                                 <div class="col-md-3 d-flex align-items-center">
                                     <input type="text" id="dateFrom" class="form-control me-2" placeholder="From date"
@@ -83,14 +83,23 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th>Payment ID</th>
-                                            <th>Action</th>
                                             <th>User</th>
+                                            <th>Guest Name</th>
+                                            <th>Amount Paid</th>
+                                            <th>Money Given</th>
+                                            <th>Change Given</th>
+                                            <th>Method</th>
+                                            <th>Reference #</th>
+                                            <th>Notes</th>
+                                            <th>Context</th>
+                                            <th>Reservation</th>
+                                            <th>Billing</th>
                                             <th>Date/Time</th>
                                         </tr>
                                     </thead>
                                     <tbody id="paymentHistoryTableBody">
                                         <tr>
-                                            <td colspan="4" class="text-center">Loading...</td>
+                                            <td colspan="13" class="text-center">Loading...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -112,7 +121,7 @@
     <!-- Use public FontAwesome CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script type="module" src="../../assets/js/admin/auth.js"></script>
-    <script type="module" src="../../assets/js/payment-history.js"></script>
+    <script type="module" src="../../assets/js/admin/payment-history.js"></script>
 </body>
 
 </html>
