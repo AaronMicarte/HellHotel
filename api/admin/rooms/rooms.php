@@ -285,6 +285,57 @@ class RoomStatus
 
 // Handle request routing
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // --- Custom endpoint for available rooms for selected dates ---
+    if (isset($_GET['available']) && $_GET['available'] == '1') {
+        include_once '../../config/database.php';
+        $database = new Database();
+        $db = $database->getConnection();
+
+        // Get all room types
+        $stmtTypes = $db->prepare("SELECT * FROM RoomType WHERE is_deleted = 0 ORDER BY type_name ASC");
+        $stmtTypes->execute();
+        $roomTypes = $stmtTypes->fetchAll(PDO::FETCH_ASSOC);
+
+        $check_in_date = $_GET['check_in_date'] ?? null;
+        $check_out_date = $_GET['check_out_date'] ?? null;
+        $exclude_reservation_id = $_GET['exclude_reservation_id'] ?? null;
+
+        $rooms = [];
+        // For each room type, get available rooms
+        foreach ($roomTypes as $rt) {
+            $params = [':room_type_id' => $rt['room_type_id']];
+            $dateFilter = '';
+            if ($check_in_date && $check_out_date) {
+                $dateFilter = "AND r.room_id NOT IN (
+                    SELECT rr.room_id
+                    FROM ReservedRoom rr
+                    JOIN Reservation res ON rr.reservation_id = res.reservation_id
+                    WHERE rr.is_deleted = 0
+                      AND res.is_deleted = 0
+                      AND res.reservation_status_id != (SELECT reservation_status_id FROM ReservationStatus WHERE reservation_status = 'cancelled' LIMIT 1)
+                      AND (
+                        (res.check_in_date < :check_out_date AND res.check_out_date > :check_in_date)
+                      )";
+                $params[':check_in_date'] = $check_in_date;
+                $params[':check_out_date'] = $check_out_date;
+                if ($exclude_reservation_id && $exclude_reservation_id !== '' && $exclude_reservation_id !== 'null') {
+                    $dateFilter .= " AND res.reservation_id != :exclude_reservation_id";
+                    $params[':exclude_reservation_id'] = $exclude_reservation_id;
+                }
+                $dateFilter .= ")";
+            }
+            $query = "SELECT r.*, rt.type_name FROM Room r LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id WHERE r.is_deleted = 0 AND r.room_type_id = :room_type_id $dateFilter ORDER BY r.room_number";
+            $stmtRooms = $db->prepare($query);
+            $stmtRooms->execute($params);
+            $theseRooms = $stmtRooms->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($theseRooms as $room) {
+                $rooms[] = $room;
+            }
+        }
+        echo json_encode(['roomTypes' => $roomTypes, 'rooms' => $rooms]);
+        exit;
+    }
+
     $operation = isset($_GET['operation']) ? $_GET['operation'] : '';
     $json = isset($_GET['json']) ? $_GET['json'] : '';
 

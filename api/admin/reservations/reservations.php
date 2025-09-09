@@ -552,16 +552,18 @@ class Reservation
 
         // --- Update reservation (do NOT insert a new one) ---
         $sql = "UPDATE Reservation 
-                SET guest_id = :guest_id, 
-                    check_in_date = :check_in_date, 
-                    check_out_date = :check_out_date,
-                    reservation_status_id = :reservation_status_id
-                WHERE reservation_id = :reservation_id";
+        SET guest_id = :guest_id, 
+            check_in_date = :check_in_date, 
+            check_out_date = :check_out_date,
+            reservation_status_id = :reservation_status_id,
+            notes = :notes
+        WHERE reservation_id = :reservation_id";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":guest_id", $json['guest_id']);
         $stmt->bindParam(":check_in_date", $json['check_in_date']);
         $stmt->bindParam(":check_out_date", $json['check_out_date']);
         $stmt->bindParam(":reservation_status_id", $json['reservation_status_id']);
+        $stmt->bindParam(":notes", $json['notes']);
         $stmt->bindParam(":reservation_id", $json['reservation_id']);
         $stmt->execute();
 
@@ -660,6 +662,28 @@ class Reservation
         $sql = "INSERT INTO ReservationStatusHistory (reservation_id, status_id, changed_by_user_id, changed_at)
                 VALUES (:reservation_id, :status_id, :user_id, NOW())";
         $stmt = $db->prepare($sql);
+        // --- Validate room availability for new dates ---
+        if (!empty($json['room_id']) && !empty($json['check_in_date']) && !empty($json['check_out_date'])) {
+            $sqlCheck = "SELECT rr.reserved_room_id
+                FROM ReservedRoom rr
+                INNER JOIN Reservation res ON rr.reservation_id = res.reservation_id AND res.is_deleted = 0
+                WHERE rr.room_id = :room_id AND rr.is_deleted = 0
+                AND res.reservation_id != :reservation_id
+                AND (
+                    (res.check_in_date <= :check_out_date AND res.check_out_date >= :check_in_date)
+                )";
+            $stmtCheck = $db->prepare($sqlCheck);
+            $stmtCheck->bindParam(":room_id", $json['room_id']);
+            $stmtCheck->bindParam(":reservation_id", $json['reservation_id']);
+            $stmtCheck->bindParam(":check_in_date", $json['check_in_date']);
+            $stmtCheck->bindParam(":check_out_date", $json['check_out_date']);
+            $stmtCheck->execute();
+            $conflict = $stmtCheck->fetchColumn();
+            if ($conflict) {
+                echo json_encode(["success" => false, "message" => "Selected room is not available for the chosen dates."]);
+                return;
+            }
+        }
         $stmt->bindParam(':reservation_id', $reservationId);
         $stmt->bindParam(':status_id', $statusId);
         // Always bind user_id, even if null
@@ -699,11 +723,14 @@ class Reservation
         $stmtPayment->execute();
         $onHoldPayment = $stmtPayment->fetch(PDO::FETCH_ASSOC);
 
-        if (!$onHoldPayment) {
-            echo json_encode(["success" => false, "message" => "No on-hold payment found."]);
-            return;
-        }
-        // Calculate total price for billing
+        // Insert with room_type_id if provided
+        $sql2 = "INSERT INTO ReservedRoom (reservation_id, room_id, room_type_id) VALUES (:reservation_id, :room_id, :room_type_id)";
+        $stmt2 = $db->prepare($sql2);
+        $stmt2->bindParam(':reservation_id', $json['reservation_id']);
+        $stmt2->bindParam(':room_id', $json['room_id']);
+        $room_type_id = isset($json['room_type_id']) ? $json['room_type_id'] : null;
+        $stmt2->bindParam(':room_type_id', $room_type_id);
+        $stmt2->execute();
         $sqlRooms = "SELECT SUM(COALESCE(rt_rr.price_per_stay, rt_r.price_per_stay)) AS total_price
             FROM Reservation res
             LEFT JOIN ReservedRoom rr ON res.reservation_id = rr.reservation_id AND rr.is_deleted = 0
@@ -719,6 +746,23 @@ class Reservation
         // Check if billing already exists (from online booking)
         $sqlCheckBilling = "SELECT billing_id FROM Billing WHERE reservation_id = :reservation_id AND is_deleted = 0";
         $stmtCheckBilling = $db->prepare($sqlCheckBilling);
+        // --- Update billing if room type or room changes ---
+        if (!empty($json['reservation_id'])) {
+            // Get total price for the new room type
+            $sqlPrice = "SELECT price_per_stay FROM RoomType WHERE room_type_id = :room_type_id";
+            $stmtPrice = $db->prepare($sqlPrice);
+            $room_type_id = isset($json['room_type_id']) ? $json['room_type_id'] : null;
+            $stmtPrice->bindParam(':room_type_id', $room_type_id);
+            $stmtPrice->execute();
+            $price = $stmtPrice->fetchColumn();
+            if ($price !== false) {
+                $sqlUpdateBill = "UPDATE Billing SET total_amount = :total_amount WHERE reservation_id = :reservation_id AND is_deleted = 0";
+                $stmtUpdateBill = $db->prepare($sqlUpdateBill);
+                $stmtUpdateBill->bindParam(':total_amount', $price);
+                $stmtUpdateBill->bindParam(':reservation_id', $json['reservation_id']);
+                $stmtUpdateBill->execute();
+            }
+        }
         $stmtCheckBilling->bindParam(":reservation_id", $reservation_id);
         $stmtCheckBilling->execute();
         $existingBilling = $stmtCheckBilling->fetch(PDO::FETCH_ASSOC);

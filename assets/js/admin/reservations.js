@@ -1,4 +1,5 @@
 import { updateReservationModal, deleteReservationModal } from '../modules/admin/reservation-module.js';
+import { showEditReservationModal } from '/Hotel-Reservation-Billing-System/assets/js/frontdesk/modules/edit-reservation.js';
 
 // ==========================
 // === DYNAMIC PAYMENT METHODS LOADER ===
@@ -303,7 +304,6 @@ document.addEventListener("DOMContentLoaded", () => {
         addRoomBtn.addEventListener('click', addRoomSection);
     }
 
-    // ...existing code...
     // Remove old room price/partial logic, now handled in summary
     function updateRoomPriceAndPartial() {
         // No-op: handled by updateMultiRoomSummary
@@ -926,10 +926,38 @@ function displayReservationsTable(reservations) {
                 <td>
                     <i class="fas fa-eye action-icon text-info" onclick="viewBookingDetails(${booking.reservation_id})" title="View Full Details" style="cursor:pointer; margin-right:10px"></i>
                     <i class="fas fa-history action-icon text-secondary" onclick="viewReservationHistory(${booking.reservation_id})" title="View Reservation History" style="cursor:pointer; margin-right:10px"></i>
+                    <button class="edit-btn btn btn-link p-0" title="Edit Reservation" data-id="${booking.reservation_id}"><i class="fas fa-pen"></i></button>
                 </td>
+    
             </tr>
         `;
+
+
     }).join('');
+
+    tbody.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.onclick = function () {
+            const id = this.getAttribute('data-id');
+            const booking = filteredReservations.find(b => b.reservation_id == id);
+            const status = (booking.reservation_status || '').toLowerCase();
+            if (status === 'checked-in' || status === 'checked-out') {
+                if (window.Swal) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'warning',
+                        title: 'Editing is disabled for checked-in or checked-out reservations.',
+                        showConfirmButton: false,
+                        timer: 2500
+                    });
+                }
+                return;
+            }
+            if (booking) {
+                showEditReservationModal(booking);
+            }
+        };
+    });
 
     // Add status action listeners
     filteredReservations.forEach(booking => {
@@ -2154,86 +2182,59 @@ function updateReservationStatsManual(reservations) {
  */
 async function viewReservationHistory(reservationId) {
     try {
+        console.log('[DEBUG] viewReservationHistory called for reservationId:', reservationId);
         const response = await axios.get('/Hotel-Reservation-Billing-System/api/admin/reservations/reservation_history.php', {
-            params: { reservation_id: reservationId }
-        });
-
-        if (response.data.status === 'success') {
-            const history = response.data.data || [];
-            displayReservationHistory(reservationId, history);
-        } else {
-            Swal.fire('Error', 'Failed to load reservation history', 'error');
-        }
-    } catch (error) {
-        console.error('Error loading reservation history:', error);
-        Swal.fire('Error', 'Failed to load reservation history', 'error');
-    }
-}
-
-/**
- * Display reservation history in a modal
- */
-function displayReservationHistory(reservationId, history) {
-    const historyHtml = history.length > 0 ?
-        history.map(entry => {
-            const date = new Date(entry.changed_at);
-            const formattedDate = date.toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            let statusIcon = '<i class="fas fa-question-circle text-secondary"></i>';
-            if (entry.reservation_status === 'confirmed') statusIcon = '<i class="fas fa-check-circle text-info"></i>';
-            else if (entry.reservation_status === 'pending') statusIcon = '<i class="fas fa-hourglass-half text-warning"></i>';
-            else if (entry.reservation_status === 'checked-in') statusIcon = '<i class="fas fa-door-open text-success"></i>';
-            else if (entry.reservation_status === 'checked-out') statusIcon = '<i class="fas fa-sign-out-alt text-primary"></i>';
-            else if (entry.reservation_status === 'cancelled') statusIcon = '<i class="fas fa-times-circle text-danger"></i>';
-
-            let userIcon = '<i class="fas fa-robot me-1 text-muted"></i>';
-            if (entry.changed_by_username) {
-                if ((entry.changed_by_role || '').toLowerCase().includes('admin')) {
-                    userIcon = '<i class="fas fa-user-shield me-1" style="color:#0d6efd"></i>';
-                } else if ((entry.changed_by_role || '').toLowerCase().includes('front')) {
-                    userIcon = '<i class="fas fa-user-tie me-1" style="color:#fd7e14"></i>';
-                } else {
-                    userIcon = '<i class="fas fa-user-circle me-1 text-primary"></i>';
-                }
+            params: {
+                operation: 'getHistoryByReservation',
+                reservation_id: reservationId
             }
-
-            return `
-                <div class="d-flex align-items-center mb-3 p-3 border rounded">
-                    <div class="me-3">
-                        ${statusIcon}
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold">${entry.reservation_status || 'Unknown Status'}</div>
-                        <div class="small text-muted">
-                            ${userIcon} Changed by: ${entry.changed_by_username || 'System'} (${entry.changed_by_role || 'Unknown'})
-                        </div>
-                        <div class="small text-muted">${formattedDate}</div>
-                    </div>
-                </div>
-            `;
-        }).join('')
-        : '<div class="text-center text-muted py-4"><i class="fas fa-inbox fa-2x mb-2"></i><br>No history found</div>';
-
-    Swal.fire({
-        title: `Reservation History - #${reservationId}`,
-        html: `
-            <div class="text-start">
-                ${historyHtml}
-            </div>
-        `,
-        width: '600px',
-        showCloseButton: true,
-        showConfirmButton: false,
-        customClass: {
-            popup: 'reservation-history-modal'
+        });
+        console.log('[DEBUG] API response:', response.data);
+        const history = Array.isArray(response.data.data) ? response.data.data : [];
+        let html = '';
+        if (!history.length) {
+            html = '<p class="text-muted">No status history found for this reservation.</p>';
+        } else {
+            html = `<table class="table table-bordered table-sm">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Changed At</th>
+                        <th>Changed By</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            history.forEach(row => {
+                let status = row.reservation_status || '-';
+                let changedAt = row.changed_at ? new Date(row.changed_at).toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
+                let changedBy = row.changed_by_username || '-';
+                let role = row.changed_by_role || '-';
+                html += `<tr>
+                    <td>${status}</td>
+                    <td>${changedAt}</td>
+                    <td>${changedBy}</td>
+                    <td>${role}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
         }
-    });
+        Swal.fire({
+            title: `<i class='fas fa-history'></i> Reservation History #${reservationId}`,
+            html: html,
+            width: 700,
+            showCloseButton: true,
+            confirmButtonText: 'Close',
+            background: '#f8f9fa',
+        });
+    } catch (err) {
+        console.error('[DEBUG] Error in viewReservationHistory:', err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Failed to load reservation history',
+            text: err?.response?.data?.message || 'Could not fetch history for this reservation.',
+        });
+    }
 }
 
 // Make functions globally accessible for onclick handlers

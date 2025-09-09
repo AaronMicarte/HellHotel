@@ -131,6 +131,7 @@ class ReservationHistory
             $stmt = $db->prepare($sql);
             $stmt->bindParam(":reservation_id", $json['reservation_id']);
         }
+
         $stmt->execute();
         $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -152,7 +153,6 @@ class ReservationHistory
             ]
         ]);
     }
-
     function insertHistory($json)
     {
         include_once '../../config/database.php';
@@ -190,6 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         } else {
             $operation = 'getAllHistory';
         }
+    } else if ($operation === 'getHistoryByReservation' && isset($_GET['reservation_id'])) {
+        $json = json_encode(['reservation_id' => $_GET['reservation_id']]);
     }
 } else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $operation = isset($_POST['operation']) ? $_POST['operation'] : '';

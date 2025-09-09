@@ -1,0 +1,147 @@
+=== DEBUG SESSION ===
+Reservation ID: null
+Role Type: front desk
+User ID: 7
+SQL Query: SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
+            u.username as changed_by_username, ur.role_type as changed_by_role, 
+            CONCAT(g.first_name, ' ', g.last_name) as guest_name 
+            FROM ReservationStatusHistory rsh 
+            LEFT JOIN ReservationStatus rs ON rsh.status_id = rs.reservation_status_id 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id 
+            LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
+            LEFT JOIN Guest g ON r.guest_id = g.guest_id 
+            WHERE rsh.reservation_id = :reservation_id 
+            AND ur.role_type = 'front desk' 
+            ORDER BY rsh.changed_at DESC
+Reservation ID Param: null
+Results Count: 0
+Results: []
+========================
+
+=== DEBUG SESSION ===
+Reservation ID: null
+Role Type: front desk
+User ID: 7
+SQL Query: SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
+            u.username as changed_by_username, ur.role_type as changed_by_role, 
+            CONCAT(g.first_name, ' ', g.last_name) as guest_name 
+            FROM ReservationStatusHistory rsh 
+            LEFT JOIN ReservationStatus rs ON rsh.status_id = rs.reservation_status_id 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id 
+            LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
+            LEFT JOIN Guest g ON r.guest_id = g.guest_id 
+            WHERE rsh.reservation_id = :reservation_id 
+            AND ur.role_type = 'front desk' 
+            ORDER BY rsh.changed_at DESC
+Reservation ID Param: null
+Results Count: 0
+Results: []
+========================
+
+=== DEBUG SESSION ===
+Reservation ID: null
+Role Type: front desk
+User ID: 7
+SQL Query: SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
+            u.username as changed_by_username, ur.role_type as changed_by_role, 
+            CONCAT(g.first_name, ' ', g.last_name) as guest_name 
+            FROM ReservationStatusHistory rsh 
+            LEFT JOIN ReservationStatus rs ON rsh.status_id = rs.reservation_status_id 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id 
+            LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
+            LEFT JOIN Guest g ON r.guest_id = g.guest_id 
+            WHERE rsh.reservation_id = :reservation_id 
+            AND ur.role_type = 'front desk' 
+            ORDER BY rsh.changed_at DESC
+Reservation ID Param: null
+Results Count: 0
+Results: []
+========================
+
+=== DEBUG SESSION ===
+Reservation ID: 154
+Role Type: front desk
+User ID: 7
+SQL Query: SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
+            u.username as changed_by_username, ur.role_type as changed_by_role, 
+            CONCAT(g.first_name, ' ', g.last_name) as guest_name 
+            FROM ReservationStatusHistory rsh 
+            LEFT JOIN ReservationStatus rs ON rsh.status_id = rs.reservation_status_id 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id 
+            LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
+            LEFT JOIN Guest g ON r.guest_id = g.guest_id 
+            WHERE rsh.reservation_id = :reservation_id 
+            AND ur.role_type = 'front desk' 
+            ORDER BY rsh.changed_at DESC
+Reservation ID Param: 154
+Results Count: 1
+Results: [{"history_id":179,"reservation_id":154,"changed_at":"2025-09-08 23:46:11","reservation_status":"confirmed","changed_by_username":"rr","changed_by_role":"front desk","guest_name":"Daphne Basset"}]
+========================
+
+=== DEBUG SESSION ===
+Reservation ID: 153
+Role Type: front desk
+User ID: 7
+SQL Query: SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
+            u.username as changed_by_username, ur.role_type as changed_by_role, 
+            CONCAT(g.first_name, ' ', g.last_name) as guest_name 
+            FROM ReservationStatusHistory rsh 
+            LEFT JOIN ReservationStatus rs ON rsh.status_id = rs.reservation_status_id 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id 
+            LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
+            LEFT JOIN Guest g ON r.guest_id = g.guest_id 
+            WHERE rsh.reservation_id = :reservation_id 
+            AND ur.role_type = 'front desk' 
+            ORDER BY rsh.changed_at DESC
+Reservation ID Param: 153
+Results Count: 2
+Results: [{"history_id":180,"reservation_id":153,"changed_at":"2025-09-09 00:10:23","reservation_status":"checked-in","changed_by_username":"rr","changed_by_role":"front desk","guest_name":"Eloise Bridgerton"},{"history_id":178,"reservation_id":153,"changed_at":"2025-09-08 23:19:29","reservation_status":"confirmed","changed_by_username":"rr","changed_by_role":"front desk","guest_name":"Eloise Bridgerton"}]
+========================
+
+=== DEBUG SESSION ===
+Reservation ID: 153
+Role Type: front desk
+User ID: 7
+SQL Query: SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
+            u.username as changed_by_username, ur.role_type as changed_by_role, 
+            CONCAT(g.first_name, ' ', g.last_name) as guest_name 
+            FROM ReservationStatusHistory rsh 
+            LEFT JOIN ReservationStatus rs ON rsh.status_id = rs.reservation_status_id 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id 
+            LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
+            LEFT JOIN Guest g ON r.guest_id = g.guest_id 
+            WHERE rsh.reservation_id = :reservation_id 
+            AND ur.role_type = 'front desk' 
+            ORDER BY rsh.changed_at DESC
+Reservation ID Param: 153
+Results Count: 2
+Results: [{"history_id":180,"reservation_id":153,"changed_at":"2025-09-09 00:10:23","reservation_status":"checked-in","changed_by_username":"rr","changed_by_role":"front desk","guest_name":"Eloise Bridgerton"},{"history_id":178,"reservation_id":153,"changed_at":"2025-09-08 23:19:29","reservation_status":"confirmed","changed_by_username":"rr","changed_by_role":"front desk","guest_name":"Eloise Bridgerton"}]
+========================
+
+=== DEBUG SESSION ===
+Reservation ID: 154
+Role Type: front desk
+User ID: 7
+SQL Query: SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
+            u.username as changed_by_username, ur.role_type as changed_by_role, 
+            CONCAT(g.first_name, ' ', g.last_name) as guest_name 
+            FROM ReservationStatusHistory rsh 
+            LEFT JOIN ReservationStatus rs ON rsh.status_id = rs.reservation_status_id 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id 
+            LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
+            LEFT JOIN Guest g ON r.guest_id = g.guest_id 
+            WHERE rsh.reservation_id = :reservation_id 
+            AND ur.role_type = 'front desk' 
+            ORDER BY rsh.changed_at DESC
+Reservation ID Param: 154
+Results Count: 1
+Results: [{"history_id":179,"reservation_id":154,"changed_at":"2025-09-08 23:46:11","reservation_status":"confirmed","changed_by_username":"rr","changed_by_role":"front desk","guest_name":"Daphne Basset"}]
+========================
+
