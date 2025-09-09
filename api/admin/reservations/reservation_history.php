@@ -7,6 +7,7 @@ header("Access-Control-Allow-Origin: *");
 
 class ReservationHistory
 {
+    // PAGINATED getAllHistory implementation
     function getAllHistory()
     {
         include_once '../../config/database.php';
@@ -16,6 +17,23 @@ class ReservationHistory
         $user_id = $_SESSION['user_id'] ?? null;
         $role_type = $_SESSION['role_type'] ?? null;
 
+        // Pagination params
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $limit = isset($_GET['limit']) ? max(1, intval($_GET['limit'])) : 10;
+        $offset = ($page - 1) * $limit;
+
+        // Count total
+        $countSql = "SELECT COUNT(*) FROM ReservationStatusHistory rsh 
+            LEFT JOIN User u ON rsh.changed_by_user_id = u.user_id 
+            LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id ";
+        if ($role_type === 'front desk') {
+            $countSql .= " WHERE ur.role_type = 'front desk'";
+        }
+        $countStmt = $db->prepare($countSql);
+        $countStmt->execute();
+        $total = $countStmt->fetchColumn();
+
+        // Main query
         if ($role_type === 'front desk') {
             $sql = "SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
             u.username as changed_by_username, ur.role_type as changed_by_role, 
@@ -28,8 +46,10 @@ class ReservationHistory
             LEFT JOIN Guest g ON r.guest_id = g.guest_id 
             WHERE ur.role_type = 'front desk' 
             ORDER BY rsh.changed_at DESC 
-            LIMIT 100";
+            LIMIT :limit OFFSET :offset";
             $stmt = $db->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         } else {
             $sql = "SELECT rsh.history_id, rsh.reservation_id, rsh.changed_at, rs.reservation_status, 
                     u.username as changed_by_username, ur.role_type as changed_by_role, 
@@ -41,8 +61,10 @@ class ReservationHistory
                     LEFT JOIN Reservation r ON rsh.reservation_id = r.reservation_id 
                     LEFT JOIN Guest g ON r.guest_id = g.guest_id 
                     ORDER BY rsh.changed_at DESC 
-                    LIMIT 100";
+                    LIMIT :limit OFFSET :offset";
             $stmt = $db->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         }
         $stmt->execute();
         $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -59,6 +81,9 @@ class ReservationHistory
         unset($row);
         echo json_encode([
             'data' => $rs,
+            'total' => intval($total),
+            'page' => $page,
+            'limit' => $limit,
             'debug' => [
                 'session_user_id' => $user_id,
                 'session_role_type' => $role_type

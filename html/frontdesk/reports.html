@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Analytics Dashboard - HellHotel</title>
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+    <script src="../../assets/js/sidebar-loader.js" defer></script>
+</head>
+
+<body class="admin-page">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <script src="../../assets/js/sidebar-loader.js"></script>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4><i class="fas fa-chart-line me-2"></i>Enterprise Analytics Dashboard</h4>
+                </div>
+                <div class="nav-right">
+                    <button class="btn btn-sm btn-primary" onclick="refreshAllCharts()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh All
+                    </button>
+                </div>
+            </nav>
+
+            <!-- KPI Cards Row -->
+            <div class="dashboard-content">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-dark shadow">
+                            <div class="card-body text-center">
+                                <i class="fas fa-sign-in-alt fa-2x mb-2"></i>
+                                <h3 id="kpi-checkin" class="mb-0">0</h3>
+                                <small>Today's Check-ins</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-dark shadow">
+                            <div class="card-body text-center">
+                                <i class="fas fa-sign-out-alt fa-2x mb-2"></i>
+                                <h3 id="kpi-checkout" class="mb-0">0</h3>
+                                <small>Today's Check-outs</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-dark shadow">
+                            <div class="card-body text-center">
+                                <i class="fas fa-bed fa-2x mb-2"></i>
+                                <h3 id="kpi-occupancy" class="mb-0">0%</h3>
+                                <small>Occupancy Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-darkshadow">
+                            <div class="card-body text-center">
+                                <i class="fas fa-coins fa-2x mb-2"></i>
+                                <h3 id="kpi-revenue" class="mb-0">₱0</h3>
+                                <small>Today's Revenue</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Analytics Row -->
+                <div class="row mb-4">
+                    <!-- Daily Arrivals/Departures -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow" style="background:#fff;">
+                            <div class="card-header" style="background:#0dcaf0;color:#fff;border-bottom:none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-calendar-check me-2"></i>Daily Reservations Activity
+                                    </div>
+                                    <input type="date" id="reportDate" class="form-control form-control-sm text-dark"
+                                        style="width:auto;">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-7">
+                                        <div style="height: 220px;">
+                                            <canvas id="arrivalsDeparturesChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <div id="arrivalsDeparturesDetails"
+                                            style="max-height: 220px; overflow-y: auto;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Occupancy Stats -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow" style="background:#fff;">
+                            <div class="card-header" style="background:#198754;color:#fff;border-bottom:none;">
+                                <i class="fas fa-bed me-2"></i>Room Occupancy Analytics
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-7">
+                                        <div style="height: 220px;">
+                                            <canvas id="occupancyChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <div id="occupancyDetails"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue Analytics Row -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card border-0 shadow" style="background:#fff;">
+                            <div class="card-header" style="background:#ffc107;color:#212529;border-bottom:none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-coins me-2"></i>Revenue Analytics & Trends
+                                    </div>
+                                    <div class="d-flex">
+                                        <input type="date" id="revenueFrom" class="form-control form-control-sm me-2"
+                                            style="width:150px;">
+                                        <input type="date" id="revenueTo" class="form-control form-control-sm"
+                                            style="width:150px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-4">
+                                <div id="revenueDetails" class="mb-4"></div>
+                                <div style="height: 500px;">
+                                    <canvas id="revenueChart"
+                                        style="box-sizing: border-box; display: block; height: 100%; width: 100%;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Analytics Row -->
+                <div class="row mb-4">
+                    <!-- Peak Hours -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow" style="background:#fff;">
+                            <div class="card-header" style="background:#6c757d;color:#fff;border-bottom:none;">
+                                <i class="fas fa-chart-bar me-2"></i>Peak Booking Hours Analysis
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 280px;">
+                                    <canvas id="peakHoursChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Type Performance -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow" style="background:#fff;">
+                            <div class="card-header" style="background:#0d6efd;color:#fff;border-bottom:none;">
+                                <i class="fas fa-chart-pie me-2"></i>Room Type Revenue Performance
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 280px;">
+                                    <canvas id="roomTypeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Addon Analytics Row -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card border-0 shadow" style="background:#fff;">
+                            <div class="card-header" style="background:#28a745;color:#fff;border-bottom:none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-shopping-cart me-2"></i>Addon Sales Analytics
+                                    </div>
+                                    <div class="d-flex">
+                                        <select id="addonCategoryFilter" class="form-control form-control-sm me-2"
+                                            style="width:150px;">
+                                            <option value="all">All Categories</option>
+                                        </select>
+                                        <input type="date" id="addonFromDate" class="form-control form-control-sm me-2"
+                                            style="width:150px;">
+                                        <input type="date" id="addonToDate" class="form-control form-control-sm"
+                                            style="width:150px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- Addon KPI Cards -->
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="card bg-info text-dark">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-box fa-2x mb-2"></i>
+                                                <h3 id="addon-total-orders" class="mb-0">0</h3>
+                                                <small>Total Orders</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-dark">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-shopping-bag fa-2x mb-2"></i>
+                                                <h3 id="addon-total-items" class="mb-0">0</h3>
+                                                <small>Items Sold</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning text-dark">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                                                <h3 id="addon-total-revenue" class="mb-0">₱0</h3>
+                                                <small>Total Revenue</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-danger text-dark">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                                                <h3 id="addon-avg-order" class="mb-0">₱0</h3>
+                                                <small>Avg Order Value</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Charts Row -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">Top Selling Addons</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="height: 450px;">
+                                                    <canvas id="topAddonsChart"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">Category Performance</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="height: 450px;">
+                                                    <canvas id="categoryPerformanceChart"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Daily Trend Chart -->
+                                <div class="row mt-4">
+                                    <div class="col-md-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">Daily Addon Sales Trend</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="height: 500px;">
+                                                    <canvas id="addonTrendChart"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Top Addons Table -->
+                                <div class="row mt-4">
+                                    <div class="col-md-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">Top Addons Details</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="topAddonsTable"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../assets/js/frontdesk/reports.js"></script>
+</body>
+
+</html>

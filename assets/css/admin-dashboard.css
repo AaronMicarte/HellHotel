@@ -752,15 +752,12 @@
 /* Revenue Chart */
 #revenueChart {
     width: 100% !important;
-    max-width: 480px;
-    min-width: 260px;
-    min-height: 180px;
-    height: 180px !important;
-    margin: 0 auto;
+    height: 100% !important;
+    margin: 0;
     background: #fff;
     border-radius: 1.2em;
     box-shadow: 0 2px 12px rgba(40, 167, 69, 0.08);
-    padding: 0.5em 0.5em 0.2em 0.5em;
+    padding: 0;
     display: block;
 }
 

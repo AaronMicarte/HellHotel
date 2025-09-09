@@ -1,6 +1,15 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const tbody = document.getElementById("historyTableBody");
     const searchInput = document.getElementById("historySearchInput");
+    const paginationContainer = document.createElement('div');
+    paginationContainer.className = 'd-flex justify-content-center my-3';
+    tbody.parentElement.appendChild(paginationContainer);
+
+    let currentPage = 1;
+    let totalPages = 1;
+    let totalRows = 0;
+    const limitPerPage = 10;
+    let lastQuery = '';
 
     // Log current user role using shared auth module
     if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
@@ -16,16 +25,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let allHistory = [];
 
-    async function fetchAllStatusHistory() {
+    async function fetchAllStatusHistory(page = 1, query = '') {
         try {
-            const resp = await axios.get("/Hotel-Reservation-Billing-System/api/admin/reservations/reservation_history.php", {
-                params: { operation: "getAllHistory" }
-            });
-            // API returns array directly
-            allHistory = Array.isArray(resp.data) ? resp.data : resp.data?.data || [];
+            const params = { operation: "getAllHistory", page, limit: limitPerPage };
+            const resp = await axios.get("/Hotel-Reservation-Billing-System/api/admin/reservations/reservation_history.php", { params });
+            const result = resp.data;
+            allHistory = Array.isArray(result.data) ? result.data : [];
+            totalRows = result.total || allHistory.length;
+            totalPages = Math.max(1, Math.ceil(totalRows / limitPerPage));
+            currentPage = result.page || page;
             renderTable(allHistory);
+            renderPagination();
         } catch (err) {
             tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Failed to load reservation history.</td></tr>`;
+            paginationContainer.innerHTML = '';
         }
     }
 
@@ -74,7 +87,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Filter table by search and date
+    function renderPagination() {
+        if (totalPages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+        let html = '<nav><ul class="pagination">';
+        html += `<li class="page-item${currentPage === 1 ? ' disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage - 1}">Prev</a></li>`;
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<li class="page-item${i === currentPage ? ' active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+        }
+        html += `<li class="page-item${currentPage === totalPages ? ' disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">Next</a></li>`;
+        html += '</ul></nav>';
+        paginationContainer.innerHTML = html;
+
+        // Add click listeners
+        paginationContainer.querySelectorAll('a.page-link').forEach(a => {
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                const page = parseInt(this.getAttribute('data-page'));
+                if (!isNaN(page) && page >= 1 && page <= totalPages && page !== currentPage) {
+                    fetchAllStatusHistory(page);
+                }
+            });
+        });
+    }
+
+    // Filter table by search and date (client-side for current page)
     function filterTable() {
         const q = (document.getElementById("historySearchInput")?.value || "").toLowerCase();
         const dateFrom = document.getElementById("dateFrom")?.value;
