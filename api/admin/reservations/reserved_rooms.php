@@ -86,6 +86,22 @@ class ReservedRoom
             $room['companions'] = $companions;
         }
 
+        // If no reserved rooms, check if reservation exists
+        if (count($reservedRooms) === 0) {
+            $sqlRes = "SELECT reservation_id FROM Reservation WHERE reservation_id = :reservation_id AND is_deleted = 0";
+            $stmtRes = $db->prepare($sqlRes);
+            $stmtRes->bindParam(":reservation_id", $json['reservation_id']);
+            $stmtRes->execute();
+            $reservationExists = $stmtRes->fetchColumn();
+            if ($reservationExists) {
+                echo json_encode(['status' => 'success', 'data' => []]);
+                return;
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Reservation not found']);
+                return;
+            }
+        }
+
         echo json_encode(['status' => 'success', 'data' => $reservedRooms]);
     }
 

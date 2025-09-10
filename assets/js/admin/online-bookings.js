@@ -385,20 +385,24 @@ async function viewAssignedRooms(reservationId) {
  */
 async function openRoomAssignment(reservationId) {
     currentReservationId = reservationId;
-    const booking = currentBookings.find(b => b.reservation_id === reservationId);
+    const booking = currentBookings.find(b => String(b.reservation_id) === String(reservationId));
 
     if (!booking) {
-        Swal.fire('Error', 'Booking not found', 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Booking Not Found',
+            text: 'Could not find booking details for this reservation. Please refresh the page or check if the booking exists.'
+        });
         return;
     }
 
-    // Populate modal with booking details
-    document.getElementById('modalGuestName').textContent = booking.guest_name || booking.first_name + ' ' + booking.last_name || 'Unknown';
-    document.getElementById('modalCheckIn').textContent = formatDate(booking.check_in_date);
-    document.getElementById('modalCheckOut').textContent = formatDate(booking.check_out_date);
-    document.getElementById('modalBookingId').textContent = `#${booking.reservation_id}`;
-    document.getElementById('modalStatus').textContent = booking.reservation_status;
-    document.getElementById('modalBookingDate').textContent = formatDate(booking.created_at);
+    // Populate modal with booking details, handle nulls gracefully
+    document.getElementById('modalGuestName').textContent = booking.guest_name || ((booking.first_name || '') + ' ' + (booking.last_name || '')) || 'Unknown';
+    document.getElementById('modalCheckIn').textContent = booking.check_in_date ? formatDate(booking.check_in_date) : 'N/A';
+    document.getElementById('modalCheckOut').textContent = booking.check_out_date ? formatDate(booking.check_out_date) : 'N/A';
+    document.getElementById('modalBookingId').textContent = booking.reservation_id ? `#${booking.reservation_id}` : 'N/A';
+    document.getElementById('modalStatus').textContent = booking.reservation_status || 'Unknown';
+    document.getElementById('modalBookingDate').textContent = booking.created_at ? formatDate(booking.created_at) : 'N/A';
 
     // Load reserved rooms for this booking
     try {

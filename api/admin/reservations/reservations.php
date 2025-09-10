@@ -117,7 +117,7 @@ class Reservation
                 LEFT JOIN Guest g ON r.guest_id = g.guest_id
                 LEFT JOIN User u ON r.user_id = u.user_id
                 LEFT JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id
-                LEFT JOIN ReservedRoom rr ON r.reservation_id = rr.reservation_id AND (rr.is_deleted = 0 OR rr.reserved_room_id IS NULL)
+                LEFT JOIN ReservedRoom rr ON r.reservation_id = rr.reservation_id AND rr.is_deleted = 0
                 LEFT JOIN Room rm ON rr.room_id = rm.room_id
                 LEFT JOIN RoomStatus rms ON rm.room_status_id = rms.room_status_id
                 WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
@@ -125,13 +125,25 @@ class Reservation
         $stmt->bindParam(":reservation_id", $json['reservation_id']);
         $stmt->execute();
         $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        if (!$rs) {
-            // Fallback: get reservation only
+        if (!$rs || count($rs) === 0) {
+            // Fallback: get reservation only, with empty room info
             $sql2 = "SELECT r.*, CONCAT(g.first_name, ' ', g.last_name) AS guest_name, u.username AS created_by, rs.reservation_status AS reservation_status FROM Reservation r LEFT JOIN Guest g ON r.guest_id = g.guest_id LEFT JOIN User u ON r.user_id = u.user_id LEFT JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
             $stmt2 = $db->prepare($sql2);
             $stmt2->bindParam(":reservation_id", $json['reservation_id']);
             $stmt2->execute();
-            $rs = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+            $reservationOnly = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if ($reservationOnly) {
+                // Return as array for consistency
+                $rs = [array_merge($reservationOnly, [
+                    'reserved_room_id' => null,
+                    'room_id' => null,
+                    'room_number' => null,
+                    'room_status_id' => null,
+                    'room_status' => null
+                ])];
+            } else {
+                $rs = [];
+            }
         }
         echo json_encode($rs);
     }
