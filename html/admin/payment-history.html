@@ -69,11 +69,11 @@
                                         placeholder="Search by Payment ID, User, or Guest Name...">
                                 </div>
                                 <div class="col-md-3 d-flex align-items-center">
-                                    <input type="text" id="dateFrom" class="form-control me-2" placeholder="From date"
+                                    <input type="date" id="dateFrom" class="form-control me-2" placeholder="From date"
                                         autocomplete="off">
                                 </div>
                                 <div class="col-md-3 d-flex align-items-center">
-                                    <input type="text" id="dateTo" class="form-control" placeholder="To date"
+                                    <input type="date" id="dateTo" class="form-control" placeholder="To date"
                                         autocomplete="off">
                                 </div>
                             </form>
@@ -83,23 +83,20 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th>Payment ID</th>
-                                            <th>User</th>
                                             <th>Guest Name</th>
-                                            <th>Amount Paid</th>
-                                            <th>Money Given</th>
-                                            <th>Change Given</th>
+                                            <!-- <th>Status</th> -->
+                                            <th>Amounts</th>
                                             <th>Method</th>
                                             <th>Reference #</th>
-                                            <th>Notes</th>
-                                            <th>Context</th>
-                                            <th>Reservation</th>
-                                            <th>Billing</th>
+                                            <th>Reservation/Billing</th>
                                             <th>Date/Time</th>
+                                            <th>Changed By</th>
+                                            <th>Notes</th>
                                         </tr>
                                     </thead>
                                     <tbody id="paymentHistoryTableBody">
                                         <tr>
-                                            <td colspan="13" class="text-center">Loading...</td>
+                                            <td colspan="10" class="text-center">Loading...</td>
                                         </tr>
                                     </tbody>
                                 </table>

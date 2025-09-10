@@ -4,6 +4,15 @@
  */
 
 // Global variables for charts and configuration
+/**
+ * Get current date string in Asia/Manila timezone (YYYY-MM-DD)
+ */
+function getManilaDateString() {
+    // Use toLocaleDateString with Asia/Manila timezone for accurate PH date
+    const now = new Date();
+    const manilaDateString = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }); // 'YYYY-MM-DD'
+    return manilaDateString;
+}
 let charts = {};
 const BASE_URL = "/Hotel-Reservation-Billing-System/api/admin";
 const colors = {
@@ -45,7 +54,7 @@ async function initializeReportsDashboard() {
  * Setup default dates for inputs
  */
 function setupDateDefaults() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getManilaDateString();
     const firstDay = today.slice(0, 8) + '01';
 
     const reportDate = document.getElementById('reportDate');
@@ -181,7 +190,7 @@ async function fetchData(operation, params = {}) {
 async function loadCheckInCheckOut() {
     try {
         const dateElement = document.getElementById('reportDate');
-        const date = dateElement ? dateElement.value : new Date().toISOString().slice(0, 10);
+        const date = dateElement ? dateElement.value : getManilaDateString();
         // Use correct backend operation name
         const data = await fetchData('daily_arrivals_departures', { date });
 
@@ -710,7 +719,7 @@ function renderRoomTypeChart(data) {
  */
 async function updateKPIs() {
     try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getManilaDateString();
         const promises = [
             fetchData('daily_arrivals_departures', { date: today }),
             fetchData('occupancy_stats'),

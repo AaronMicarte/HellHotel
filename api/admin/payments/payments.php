@@ -26,6 +26,7 @@
             p.amount_paid, p.money_given, p.change_given, p.sub_method_id, p.notes, p.reference_number, p.proof_of_payment_url, p.billing_id AS payment_billing_id, p.reservation_id AS payment_reservation_id, p.payment_date, p.is_deleted,
             u.username, ur.role_type AS user_role,
             b.total_amount AS billing_total, b.billing_id,
+            (SELECT bs2.billing_status FROM BillingStatus bs2 WHERE bs2.billing_status_id = b.billing_status_id) AS billing_status,
             res.reservation_id,
             g.first_name AS guest_first_name, g.last_name AS guest_last_name, g.middle_name AS guest_middle_name,
             sm.name AS sub_method_name, cat.name AS payment_category
