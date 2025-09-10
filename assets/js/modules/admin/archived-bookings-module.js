@@ -58,6 +58,8 @@ const ArchivedBookingsModule = {
                                     <th style="color:#212529;background:#fff;">Check-out</th>
                                     <th style="color:#212529;background:#fff;">Status</th>
                                     <th style="color:#212529;background:#fff;">Archived Info</th>
+                                       <th style="color:#212529;background:#fff;">Archived By</th>
+                                       <th style="color:#212529;background:#fff;">User Role</th>
                                     <th style="color:#212529;background:#fff;">Actions</th>
                                 </tr>
                             </thead>
@@ -71,6 +73,18 @@ const ArchivedBookingsModule = {
             const archivedDate = this.formatDate(booking.updated_at || booking.created_at);
             const nights = this.calculateNights(booking.check_in_date, booking.check_out_date);
             const roomsSummary = booking.rooms_summary || 'No rooms assigned';
+            // Archived by user icon and username
+            let userIcon = '<i class="fas fa-robot me-1 text-muted"></i>';
+            if (booking.archived_by_username) {
+                const role = (booking.archived_by_role || '').trim().toLowerCase();
+                if (role === 'admin') {
+                    userIcon = '<i class="fas fa-user-shield me-1 archived-admin"></i>'; // blue for admin
+                } else if (role === 'front desk') {
+                    userIcon = '<i class="fas fa-user-tie me-1 archived-frontdesk"></i>'; // orange for front desk
+                } else {
+                    userIcon = '<i class="fas fa-user-circle me-1 text-primary"></i>';
+                }
+            }
 
             html += `
                 <tr>
@@ -94,6 +108,8 @@ const ArchivedBookingsModule = {
                         <br>
                         <small class="text-muted">${roomsSummary}</small>
                     </td>
+                       <td style="color:#212529;background:#fff;">${userIcon} ${booking.archived_by_username || '-'}</td>
+                       <td style="color:#212529;background:#fff;">${booking.archived_by_role || '-'}</td>
                     <td style="color:#212529;background:#fff;">
                         <i class="fas fa-eye me-3 text-primary" style="cursor:pointer;" onclick="viewArchivedBookingDetails(${booking.reservation_id})" title="View Details"></i>
                         <i class="fas fa-history text-warning" style="cursor:pointer;" onclick="viewArchivedBookingHistory(${booking.reservation_id})" title="View History"></i>

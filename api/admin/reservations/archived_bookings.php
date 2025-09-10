@@ -46,13 +46,17 @@ class ArchivedBookingsAPI
                         DISTINCT CONCAT(rm.room_number, ' (', rt.type_name, ')') 
                         ORDER BY rm.room_number SEPARATOR ', '
                     ) as rooms_summary,
-                    CONCAT(g.first_name, ' ', g.last_name) as guest_name
+                    CONCAT(g.first_name, ' ', g.last_name) as guest_name,
+                    u.username AS archived_by_username,
+                    ur.role_type AS archived_by_role
                 FROM Reservation r
                 LEFT JOIN Guest g ON r.guest_id = g.guest_id
                 LEFT JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id
                 LEFT JOIN ReservedRoom rr ON r.reservation_id = rr.reservation_id AND rr.is_deleted = 0
                 LEFT JOIN Room rm ON rr.room_id = rm.room_id
                 LEFT JOIN RoomType rt ON rm.room_type_id = rt.room_type_id
+                LEFT JOIN User u ON r.user_id = u.user_id
+                LEFT JOIN UserRoles ur ON u.user_roles_id = ur.user_roles_id
                 WHERE r.reservation_status_id IN ($status_ids_str) AND r.is_deleted = 0";
 
         if ($search !== '') {

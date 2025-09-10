@@ -1,3 +1,12 @@
+/* Force icon color for archived by user role */
+.fa-user-shield.archived-admin {
+    color: #0d6efd !important;
+}
+
+.fa-user-tie.archived-frontdesk {
+    color: #fd7e14 !important;
+}
+
 .sidebar-menu .sidebar-dropdown>a:hover,
 .sidebar-menu .sidebar-dropdown.open>a {
     background: #f8f9fa;
