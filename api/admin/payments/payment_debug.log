@@ -1,0 +1,6 @@
+2025-09-10T13:43:36+02:00 insertOnHoldPayment payload: {"reservation_id":"161","billing_id":"126","sub_method_id":"1","amount_paid":249.5,"payment_date":"2025-09-10","reference_number":"123123","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-10T13:43:36+02:00 File uploaded: assets/images/payment/1757504616_hellhotel-logo2.png
+2025-09-10T13:43:36+02:00 Payment inserted successfully with ID: 136
+2025-09-10T13:47:22+02:00 insertOnHoldPayment payload: {"reservation_id":"162","billing_id":"127","sub_method_id":"1","amount_paid":99.5,"payment_date":"2025-09-10","reference_number":"123","notes":"Online booking - On hold pending confirmation","status":"on_hold"}
+2025-09-10T13:47:22+02:00 File uploaded: assets/images/payment/1757504842_hehe.jpeg
+2025-09-10T13:47:22+02:00 Payment inserted successfully with ID: 137

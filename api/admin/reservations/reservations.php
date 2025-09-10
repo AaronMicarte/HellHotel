@@ -107,17 +107,32 @@ class Reservation
         $sql = "SELECT r.*, 
                        CONCAT(g.first_name, ' ', g.last_name) AS guest_name,
                        u.username AS created_by,
-                       rs.room_status AS reservation_status
+                       rs.reservation_status AS reservation_status,
+                       rr.reserved_room_id,
+                       rr.room_id,
+                       rm.room_number,
+                       rm.room_status_id,
+                       rms.room_status AS room_status
                 FROM Reservation r
                 LEFT JOIN Guest g ON r.guest_id = g.guest_id
                 LEFT JOIN User u ON r.user_id = u.user_id
                 LEFT JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id
+                LEFT JOIN ReservedRoom rr ON r.reservation_id = rr.reservation_id AND (rr.is_deleted = 0 OR rr.reserved_room_id IS NULL)
+                LEFT JOIN Room rm ON rr.room_id = rm.room_id
+                LEFT JOIN RoomStatus rms ON rm.room_status_id = rms.room_status_id
                 WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
         $stmt = $db->prepare($sql);
         $stmt->bindParam(":reservation_id", $json['reservation_id']);
         $stmt->execute();
         $rs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        if (!$rs) {
+            // Fallback: get reservation only
+            $sql2 = "SELECT r.*, CONCAT(g.first_name, ' ', g.last_name) AS guest_name, u.username AS created_by, rs.reservation_status AS reservation_status FROM Reservation r LEFT JOIN Guest g ON r.guest_id = g.guest_id LEFT JOIN User u ON r.user_id = u.user_id LEFT JOIN ReservationStatus rs ON r.reservation_status_id = rs.reservation_status_id WHERE r.reservation_id = :reservation_id AND r.is_deleted = 0";
+            $stmt2 = $db->prepare($sql2);
+            $stmt2->bindParam(":reservation_id", $json['reservation_id']);
+            $stmt2->execute();
+            $rs = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+        }
         echo json_encode($rs);
     }
 

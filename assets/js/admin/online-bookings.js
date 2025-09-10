@@ -914,10 +914,13 @@ async function viewBookingDetails(reservationId) {
                     }
                 });
 
-                if (reservationResponse.data) {
+                // Handle array or object response
+                if (Array.isArray(reservationResponse.data)) {
+                    dataToRender = reservationResponse.data.length > 0 ? reservationResponse.data[0] : {};
+                } else if (reservationResponse.data && typeof reservationResponse.data === 'object') {
                     dataToRender = reservationResponse.data;
-                    console.log('Got booking from reservations API:', dataToRender);
                 }
+                console.log('Got booking from reservations API:', dataToRender);
             } catch (reservationError) {
                 console.error('Failed to get reservation from API:', reservationError);
                 throw new Error('Booking not found');
@@ -982,10 +985,15 @@ async function renderBookingDetails(data) {
             }
         });
 
-        if (reservationResponse.data && typeof reservationResponse.data === 'object') {
-            console.log('Full reservation data:', reservationResponse.data);
+        // Handle array or object response
+        if (Array.isArray(reservationResponse.data)) {
+            if (reservationResponse.data.length > 0) {
+                fullReservationData = { ...data, ...reservationResponse.data[0] };
+            }
+        } else if (reservationResponse.data && typeof reservationResponse.data === 'object') {
             fullReservationData = { ...data, ...reservationResponse.data };
         }
+        console.log('Full reservation data:', reservationResponse.data);
     } catch (error) {
         console.warn('Could not fetch full reservation details:', error);
     }

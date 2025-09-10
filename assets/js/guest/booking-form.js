@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Set back button to correct room listing page
     const backBtn = document.getElementById('backToRoomDetailsBtn');
     if (backBtn) {
-        backBtn.href = 'room-selection.html';
+        backBtn.href = 'rooms.html';
     }
 
     // Set minimum date for check-in (today)
