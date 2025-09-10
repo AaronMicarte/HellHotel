@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add User - HellHotel</title>
+
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/admin-dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/admin-user.css">
+
+    <!-- In your HTML head -->
+    <script src="../../assets/js/sidebar-loader.js" defer></script>
+
+    <!-- Force readable archived bookings table -->
+    <style>
+        #archived-bookings-list table th,
+        #archived-bookings-list table td {
+            color: #212529 !important;
+            background: #fff !important;
+        }
+
+        #archived-bookings-list .table-light th {
+            background: #f8f9fa !important;
+            color: #212529 !important;
+        }
+
+        strong {
+            color: #212529 !important;
+        }
+    </style>
+</head>
+
+<body class="admin-page enhanced-dashboard-bg">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <script src="../../assets/js/sidebar-loader.js"></script>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4>Archived Bookings</h4>
+                </div>
+
+                <div class="nav-right">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                            <span id="userName">Admin</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><span class="dropdown-item-text">Role: <span id="userRole">admin</span></span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>
+                                    Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Archived Bookings Content -->
+            <div class="dashboard-content">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5><i class="fas fa-archive"></i> Archived Bookings</h5>
+                    </div>
+                    <div class="card-body">
+                        <section id="filters" class="mb-3">
+                            <input type="text" id="search" class="form-control d-inline-block w-auto"
+                                placeholder="Search by guest name, date, etc.">
+                            <button id="searchBtn" class="btn btn-primary ms-2">Search</button>
+                        </section>
+                        <section id="archived-bookings-list">
+                            <!-- Archived bookings will be listed here -->
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../assets/js/admin/auth.js"></script>
+    <script type="module" src="../../assets/js/admin/archived-bookings.js"></script>
+    <script>
+        // Check auth before loading page
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.adminAuth) {
+                console.error('Admin auth not initialized');
+                window.location.href = 'admin-login.html';
+                return;
+            }
+
+            // Require authentication
+            if (!window.adminAuth.requireAuth()) {
+                return; // Auth check will redirect if needed
+            }
+
+            // Set user info in UI
+            const user = window.adminAuth.getUser();
+            if (user) {
+                document.getElementById('userName').textContent = user.username;
+                document.getElementById('userRole').textContent = user.role_type || 'admin';
+            }
+
+            // Setup logout button
+            document.getElementById('logoutBtn').addEventListener('click', function (e) {
+                e.preventDefault();
+                window.adminAuth.logout();
+            });
+        });
+    </script>
+</body>
+
+</html>

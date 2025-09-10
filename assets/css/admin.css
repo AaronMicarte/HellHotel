@@ -236,6 +236,17 @@ body.admin-page {
     border-left: 3px solid #dc3545;
 }
 
+/* Fix white text in archived bookings table */
+#archived-bookings-list table th,
+#archived-bookings-list table td {
+    color: #212529 !important;
+}
+
+#archived-bookings-list .table-light th {
+    background: #f8f9fa !important;
+    color: #212529 !important;
+}
+
 .table-danger-subtle:hover {
     background-color: rgba(220, 53, 69, 0.12) !important;
 }

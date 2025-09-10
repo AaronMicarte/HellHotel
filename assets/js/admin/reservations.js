@@ -1,5 +1,6 @@
 import { updateReservationModal, deleteReservationModal } from '../modules/admin/reservation-module.js';
 import { showEditReservationModal } from '/Hotel-Reservation-Billing-System/assets/js/frontdesk/modules/edit-reservation.js';
+import { getArchivedStatusIcon } from '../modules/admin/archived-status-icon-module.js';
 
 // ==========================
 // === DYNAMIC PAYMENT METHODS LOADER ===
@@ -833,35 +834,9 @@ function showCheckInNotAvailable(checkInDate) {
 }
 
 function displayReservationsTable(reservations) {
-    console.log("📊 displayReservationsTable called with:", reservations); // DEBUG
-    console.log("📊 Reservations length:", reservations?.length); // DEBUG
-
     const tbody = document.getElementById("reservationsTableBody");
-    if (!tbody) {
-        console.error("❌ reservationsTableBody element not found!");
-        return;
-    }
 
     tbody.innerHTML = "";
-
-    // Check if reservations is null, undefined, or not an array
-    if (!reservations) {
-        console.log("⚠️ Reservations is null or undefined");
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center">No reservations data received.</td></tr>`;
-        return;
-    }
-
-    if (!Array.isArray(reservations)) {
-        console.log("⚠️ Reservations is not an array, type:", typeof reservations);
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center">Invalid reservations data format.</td></tr>`;
-        return;
-    }
-
-    if (!reservations.length) {
-        console.log("⚠️ Reservations array is empty");
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center">No reservations found.</td></tr>`;
-        return;
-    }
 
     // Only show reservations where is_deleted is false/0/"0"/"FALSE"/"false"
     const filteredReservations = Array.isArray(reservations)
@@ -893,7 +868,8 @@ function displayReservationsTable(reservations) {
 
     // Render table rows with modern design (matching online-bookings style)
     tbody.innerHTML = filteredReservations.map(booking => {
-        const statusDisplay = getStatusBadge(booking.reservation_status);
+        const archivedIcon = getArchivedStatusIcon(booking.reservation_status);
+        const statusDisplay = `${archivedIcon} ${getStatusBadge(booking.reservation_status)}`;
         const typeBadge = getReservationTypeBadge(booking.reservation_type);
         const assignedRooms = booking.rooms_summary || 'Not Assigned';
         const isAssigned = booking.all_room_numbers && booking.all_room_numbers.trim() !== '';
@@ -903,6 +879,10 @@ function displayReservationsTable(reservations) {
         const isOverdue = (booking.reservation_status || '').toLowerCase() === 'overdue';
         const rowClass = isOverdue ? 'table-danger-subtle' : '';
 
+        const showArchiveIcon = ['overdue', 'cancelled', 'checked-out'].includes((booking.reservation_status || '').toLowerCase());
+        const archiveActionIcon = showArchiveIcon
+            ? `<i class="fas fa-box-archive action-icon" style="color:#8B5CF6;cursor:pointer;margin-left:8px" title="Transfer to Archive" data-archive-id="${booking.reservation_id}"></i>`
+            : '';
         return `
             <tr data-reservation-id="${booking.reservation_id}" class="${rowClass}">
                 <td>
@@ -948,6 +928,7 @@ function displayReservationsTable(reservations) {
                     <i class="fas fa-eye action-icon text-info" onclick="viewBookingDetails(${booking.reservation_id})" title="View Full Details" style="cursor:pointer; margin-right:10px"></i>
                     <i class="fas fa-history action-icon text-secondary" onclick="viewReservationHistory(${booking.reservation_id})" title="View Reservation History" style="cursor:pointer; margin-right:10px"></i>
                     <button class="edit-btn btn btn-link p-0" title="Edit Reservation" data-id="${booking.reservation_id}"><i class="fas fa-pen"></i></button>
+                    ${archiveActionIcon}
                 </td>
     
             </tr>
@@ -978,6 +959,62 @@ function displayReservationsTable(reservations) {
                 showEditReservationModal(booking);
             }
         };
+    });
+
+    // Archive icon SweetAlert confirmation
+    tbody.querySelectorAll('.fa-box-archive.action-icon').forEach(icon => {
+        icon.addEventListener('click', function () {
+            const reservationId = this.getAttribute('data-archive-id');
+            const booking = filteredReservations.find(b => b.reservation_id == reservationId);
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Transfer to Archive',
+                    text: 'Do you want to transfer this booking to the archive?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, archive it',
+                    cancelButtonText: 'No',
+                    customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-secondary' }
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            // Call backend to archive the booking
+                            await archiveBooking(reservationId);
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Archived!',
+                                text: 'This booking has been transferred to the archive.',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: { confirmButton: 'btn btn-primary' }
+                            }).then(() => {
+                                // Refresh the reservations table after archiving
+                                displayReservations();
+                                updateReservationStatsOverview();
+                            });
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Archive Failed',
+                                text: 'Failed to transfer booking to archive. Please try again.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    }
+                });
+            } else {
+                if (confirm('Do you want to transfer this booking to the archive?')) {
+                    archiveBooking(reservationId).then(() => {
+                        alert('This booking has been transferred to the archive.');
+                        displayReservations();
+                        updateReservationStatsOverview();
+                    }).catch(() => {
+                        alert('Failed to transfer booking to archive.');
+                    });
+                }
+            }
+        });
     });
 
     // Add status action listeners
@@ -2277,3 +2314,48 @@ window.viewReservationHistory = viewReservationHistory;
 window.changeStatusFlow = changeStatusFlow;
 window.showCheckInNotAvailable = showCheckInNotAvailable;
 window.viewProofOfPayment = viewProofOfPayment;
+
+// ==========================
+// === ARCHIVE BOOKING ======
+// ==========================
+async function archiveBooking(reservationId) {
+    // Get user ID from auth system for audit trail
+    let userId = null;
+    if (window.adminAuth && typeof window.adminAuth.getUser === 'function') {
+        const user = window.adminAuth.getUser();
+        userId = user ? user.user_id : null;
+    }
+
+    console.log('Archiving booking:', reservationId, 'by user:', userId);
+
+    const payload = {
+        operation: 'archiveBooking',
+        json: JSON.stringify({
+            reservation_id: reservationId,
+            archived_by_user_id: userId
+        })
+    };
+
+    const formData = new FormData();
+    formData.append('operation', payload.operation);
+    formData.append('json', payload.json);
+
+    try {
+        console.log('Sending archive request to:', `${BASE_URL}/reservations/archived_bookings.php`);
+        const response = await axios.post(`${BASE_URL}/reservations/archived_bookings.php`, formData);
+
+        console.log('Archive response:', response.data);
+
+        if (response.data && response.data.success) {
+            console.log('✅ Booking archived successfully:', reservationId);
+            return response.data;
+        } else {
+            console.error('Archive failed:', response.data);
+            throw new Error(response.data?.message || 'Failed to archive booking');
+        }
+    } catch (error) {
+        console.error('❌ Error archiving booking:', error);
+        console.error('Error response:', error.response?.data);
+        throw error;
+    }
+}

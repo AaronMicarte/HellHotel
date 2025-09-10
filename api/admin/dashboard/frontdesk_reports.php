@@ -175,15 +175,15 @@ class FrontdeskReports
         $from = $_GET['from'] ?? date('Y-m-01');
         $to = $_GET['to'] ?? date('Y-m-d');
 
-        // Enhanced revenue query with additional analytics (fixed table names)
+        // Revenue analytics using actual payments
         $sql = "SELECT 
-                    SUM(b.total_amount) as total_revenue,
-                    COUNT(DISTINCT b.billing_id) as total_transactions,
-                    AVG(b.total_amount) as avg_transaction_value,
-                    SUM(CASE WHEN DATE(b.billing_date) = CURDATE() THEN b.total_amount ELSE 0 END) as today_revenue,
-                    COUNT(DISTINCT CASE WHEN DATE(b.billing_date) = CURDATE() THEN b.billing_id END) as today_transactions
-                FROM billing b 
-                WHERE b.billing_date BETWEEN :from AND :to";
+            SUM(p.amount_paid) as total_revenue,
+            COUNT(DISTINCT p.payment_id) as total_transactions,
+            AVG(p.amount_paid) as avg_transaction_value,
+            SUM(CASE WHEN DATE(p.payment_date) = CURDATE() THEN p.amount_paid ELSE 0 END) as today_revenue,
+            COUNT(DISTINCT CASE WHEN DATE(p.payment_date) = CURDATE() THEN p.payment_id END) as today_transactions
+        FROM Payment p 
+        WHERE p.payment_date BETWEEN :from AND :to AND p.is_deleted = 0";
 
         $stmt = $db->prepare($sql);
         $stmt->bindParam(':from', $from);
@@ -191,12 +191,12 @@ class FrontdeskReports
         $stmt->execute();
         $revenue = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Daily revenue trend for the period (fixed table names)
-        $trendSql = "SELECT DATE(billing_date) as date, SUM(total_amount) as daily_revenue
-                     FROM billing 
-                     WHERE billing_date BETWEEN :from AND :to
-                     GROUP BY DATE(billing_date)
-                     ORDER BY DATE(billing_date)";
+        // Daily revenue trend for the period
+        $trendSql = "SELECT DATE(payment_date) as date, SUM(amount_paid) as daily_revenue
+             FROM Payment 
+             WHERE payment_date BETWEEN :from AND :to AND is_deleted = 0
+             GROUP BY DATE(payment_date)
+             ORDER BY DATE(payment_date)";
 
         $trendStmt = $db->prepare($trendSql);
         $trendStmt->bindParam(':from', $from);
