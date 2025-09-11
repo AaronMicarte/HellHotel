@@ -1593,14 +1593,17 @@ async function showRoomDetailsModal(roomId) {
         return;
     }
 
+    // Fetch images for the room's type, not the room itself
     let images = [];
     try {
-        const res = await axios.get(`${BASE_URL}/admin/rooms/room-images.php`, {
-            params: { room_id: roomId }
-        });
-        images = Array.isArray(res.data) ? res.data : [];
+        if (room.room_type_id) {
+            const res = await axios.get(`${BASE_URL}/admin/rooms/room-images.php`, {
+                params: { room_type_id: room.room_type_id }
+            });
+            images = Array.isArray(res.data) ? res.data : [];
+        }
     } catch (error) {
-        console.error("Error fetching room images:", error);
+        console.error("Error fetching room type images:", error);
         images = [];
     }
 
