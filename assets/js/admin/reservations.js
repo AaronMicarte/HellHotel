@@ -838,16 +838,15 @@ function displayReservationsTable(reservations) {
 
     tbody.innerHTML = "";
 
-    // Only show reservations where is_deleted is false/0/"0"/"FALSE"/"false"
+    // Only show reservations that are not deleted and not archived
     const filteredReservations = Array.isArray(reservations)
-        ? reservations.filter(r =>
-            !r.is_deleted ||
-            r.is_deleted === 0 ||
-            r.is_deleted === "0" ||
-            r.is_deleted === false ||
-            r.is_deleted === "FALSE" ||
-            r.is_deleted === "false"
-        )
+        ? reservations.filter(r => {
+            const notDeleted = !r.is_deleted || r.is_deleted === 0 || r.is_deleted === "0" || r.is_deleted === false || r.is_deleted === "FALSE" || r.is_deleted === "false";
+            // Exclude archived bookings (reservation_status === 'archived')
+            const status = (r.reservation_status || '').toLowerCase();
+            const notArchived = status !== 'archived';
+            return notDeleted && notArchived;
+        })
         : [];
 
     // --- Update stats overview ---
@@ -1298,17 +1297,16 @@ async function viewBookingDetails(reservationId) {
             const mainGuestRoomIndex = 0; // First room is main guest's room
 
             reservedRooms.forEach((room, index) => {
-                const companions = allCompanions.filter(c => String(c.reserved_room_id) === String(room.reserved_room_id) && c.is_deleted == 0);
+                let companions = allCompanions.filter(c => String(c.reserved_room_id) === String(room.reserved_room_id) && c.is_deleted == 0);
                 const isMainGuestRoom = index === mainGuestRoomIndex;
+
+                // Remove main guest from companions if present (case-insensitive match)
+                companions = companions.filter(c => c.full_name.trim().toLowerCase() !== mainGuestName.trim().toLowerCase());
 
                 // Get room type pricing information
                 const roomType = roomTypes.find(rt => rt.room_type_id == room.room_type_id);
                 const ratePerNight = roomType ? parseFloat(roomType.price_per_stay || 0) : 0;
                 const subtotal = ratePerNight * nights;
-
-                console.log(`Room ${index}:`, room); // Debug log
-                console.log(`Room Type:`, roomType); // Debug log
-                console.log(`Rate: ${ratePerNight}, Nights: ${nights}, Subtotal: ${subtotal}`); // Debug log
 
                 html += `
                     <div class="card mb-3 ${isMainGuestRoom ? 'border-primary' : ''}">
